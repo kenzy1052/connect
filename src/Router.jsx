@@ -22,37 +22,58 @@ import NotFound from "./components/Layout/NotFound";
 /* Lazy-loaded routes — keeps initial bundle lean for 25k+ users */
 const ListingDetail = lazy(() => import("./components/Feed/ListingDetail"));
 const CreateListing = lazy(() =>
-  import("./components/Feed/CreateListing").then((m) => ({ default: m.CreateListing }))
+  import("./components/Feed/CreateListing").then((m) => ({
+    default: m.CreateListing,
+  })),
 );
 const AdminPanel = lazy(() => import("./components/Admin/AdminPanel"));
 const SellerProfile = lazy(() => import("./pages/SellerProfile"));
 const SearchResults = lazy(() => import("./pages/SearchResults"));
 
 const AccountLayout = lazy(() => import("./components/Account/AccountLayout"));
-const DashboardTab = lazy(() => import("./components/Account/tabs/DashboardTab"));
+const AccountIndex = lazy(() =>
+  import("./components/Account/AccountLayout").then((m) => ({
+    default: m.AccountIndex,
+  })),
+);
+const DashboardTab = lazy(
+  () => import("./components/Account/tabs/DashboardTab"),
+);
 const ProfileTab = lazy(() => import("./components/Account/tabs/ProfileTab"));
 const NumbersTab = lazy(() => import("./components/Account/tabs/NumbersTab"));
-const MyListingsTab = lazy(() => import("./components/Account/tabs/MyListingsTab"));
+const MyListingsTab = lazy(
+  () => import("./components/Account/tabs/MyListingsTab"),
+);
 const SavedTab = lazy(() => import("./components/Account/tabs/SavedTab"));
 const SecurityTab = lazy(() => import("./components/Account/tabs/SecurityTab"));
-const CustomizationTab = lazy(() => import("./components/Account/tabs/CustomizationTab"));
-const NotificationsTab = lazy(() => import("./components/Account/tabs/NotificationsTab"));
-const DeleteProfileTab = lazy(() => import("./components/Account/tabs/DeleteProfileTab"));
+const CustomizationTab = lazy(
+  () => import("./components/Account/tabs/CustomizationTab"),
+);
+const NotificationsTab = lazy(
+  () => import("./components/Account/tabs/NotificationsTab"),
+);
+const DeleteProfileTab = lazy(
+  () => import("./components/Account/tabs/DeleteProfileTab"),
+);
 
 const AuthSignIn = lazy(() => import("./components/Auth/AuthSignIn"));
 const AuthSignUp = lazy(() => import("./components/Auth/AuthSignUp"));
-const AuthForgotPassword = lazy(() => import("./components/Auth/AuthForgotPassword"));
-const AuthResetPassword = lazy(() => import("./components/Auth/AuthResetPassword"));
+const AuthForgotPassword = lazy(
+  () => import("./components/Auth/AuthForgotPassword"),
+);
+const AuthResetPassword = lazy(
+  () => import("./components/Auth/AuthResetPassword"),
+);
 
 const About = lazy(() => import("./pages/About"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const NeedHelp = lazy(() => import("./pages/NeedHelp"));
 const InformationTab = lazy(() =>
-  import("./pages/NeedHelp").then((m) => ({ default: m.InformationTab }))
+  import("./pages/NeedHelp").then((m) => ({ default: m.InformationTab })),
 );
 const FAQTab = lazy(() =>
-  import("./pages/NeedHelp").then((m) => ({ default: m.FAQTab }))
+  import("./pages/NeedHelp").then((m) => ({ default: m.FAQTab })),
 );
 const Safety = lazy(() => import("./pages/Safety"));
 const CustomerSupport = lazy(() => import("./pages/CustomerSupport"));
@@ -104,6 +125,7 @@ function FeedRoute() {
     isHome,
     isBrowse,
   } = useOutletContext();
+  const navigate = useNavigate();
 
   if (isInitialLoading) {
     return (
@@ -116,22 +138,64 @@ function FeedRoute() {
     <>
       {isBrowse && (
         <header className="mb-6">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">All listings</p>
-          <h1 className="mt-1 text-2xl md:text-3xl font-bold text-main">Browse everything</h1>
-          <p className="mt-1 text-sm text-muted">Every active listing, paginated and ready to explore.</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">
+            All listings
+          </p>
+          <h1 className="mt-1 text-2xl md:text-3xl font-bold text-main">
+            Browse everything
+          </h1>
+          <p className="mt-1 text-sm text-muted">
+            Every active listing, paginated and ready to explore.
+          </p>
         </header>
       )}
       {isHome && listings.length > 0 && (
         <header className="mb-4 flex items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">Fresh on campus</p>
-            <h2 className="mt-1 text-xl md:text-2xl font-bold text-main">Latest listings</h2>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">
+              Fresh on campus
+            </p>
+            <h2 className="mt-1 text-xl md:text-2xl font-bold text-main">
+              Latest listings
+            </h2>
           </div>
         </header>
       )}
       <FeedList listings={listings} onListingClick={openDetailView} />
-      <div ref={observerTarget} className="h-32 flex justify-center items-center">
-        {loading && isBrowse && <p className="text-xs text-brand">Loading more…</p>}
+      {isHome && listings.length > 0 && (
+        <div className="mt-8 mb-4 flex flex-col items-center gap-3">
+          <p className="text-sm text-muted">
+            Showing the latest {listings.length} listings
+          </p>
+          <button
+            onClick={() => navigate("/browse")}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl gradient-brand text-[hsl(var(--primary-fg))] text-sm font-semibold shadow-[0_4px_14px_hsl(var(--primary)/0.35)] hover:shadow-[0_6px_20px_hsl(var(--primary)/0.45)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            Browse all listings
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
+      <div
+        ref={observerTarget}
+        className="h-32 flex justify-center items-center"
+      >
+        {loading && isBrowse && (
+          <p className="text-xs text-brand">Loading more…</p>
+        )}
         {!hasMore && isBrowse && listings.length > 0 && (
           <p className="text-xs text-faint">You&apos;ve seen everything</p>
         )}
@@ -237,15 +301,27 @@ export default function AppRouter() {
         <Routes>
           <Route
             path="/signin"
-            element={<GuestOnly><AuthSignIn /></GuestOnly>}
+            element={
+              <GuestOnly>
+                <AuthSignIn />
+              </GuestOnly>
+            }
           />
           <Route
             path="/signup"
-            element={<GuestOnly><AuthSignUp /></GuestOnly>}
+            element={
+              <GuestOnly>
+                <AuthSignUp />
+              </GuestOnly>
+            }
           />
           <Route
             path="/forgot-password"
-            element={<GuestOnly><AuthForgotPassword /></GuestOnly>}
+            element={
+              <GuestOnly>
+                <AuthForgotPassword />
+              </GuestOnly>
+            }
           />
           <Route path="/reset-password" element={<AuthResetPassword />} />
           <Route path="/auth" element={<Navigate to="/signin" replace />} />
@@ -273,7 +349,7 @@ export default function AppRouter() {
               <Route path="admin" element={<AdminRoute />} />
 
               <Route path="account" element={<AccountLayout />}>
-                <Route index element={<Navigate to="/account/customization" replace />} />
+                <Route index element={<AccountIndex />} />
                 <Route path="dashboard" element={<DashboardTab />} />
                 <Route path="profile" element={<ProfileTab />} />
                 <Route path="numbers" element={<NumbersTab />} />
@@ -286,11 +362,26 @@ export default function AppRouter() {
               </Route>
             </Route>
 
-            <Route path="mylistings" element={<Navigate to="/account/mylistings" replace />} />
-            <Route path="saved" element={<Navigate to="/account/saved" replace />} />
-            <Route path="profile" element={<Navigate to="/account/profile" replace />} />
-            <Route path="dashboard" element={<Navigate to="/account/dashboard" replace />} />
-            <Route path="settings" element={<Navigate to="/account/customization" replace />} />
+            <Route
+              path="mylistings"
+              element={<Navigate to="/account/mylistings" replace />}
+            />
+            <Route
+              path="saved"
+              element={<Navigate to="/account/saved" replace />}
+            />
+            <Route
+              path="profile"
+              element={<Navigate to="/account/profile" replace />}
+            />
+            <Route
+              path="dashboard"
+              element={<Navigate to="/account/dashboard" replace />}
+            />
+            <Route
+              path="settings"
+              element={<Navigate to="/account" replace />}
+            />
 
             <Route path="*" element={<NotFound />} />
           </Route>

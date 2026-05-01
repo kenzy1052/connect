@@ -8,13 +8,17 @@ import { useAuth } from "../../context/AuthContext";
  */
 export default function SecondaryBar({ onFilterClick }) {
   const { user } = useAuth();
+
+  const btnBase =
+    "inline-flex items-center gap-1.5 px-3 h-8 rounded-md font-medium transition-colors text-muted hover:text-main hover:bg-surface-hover";
+
   return (
-    <div className="relative z-[110] bg-surface-2 backdrop-blur-xl border-b border-app">
+    <div className="relative z-[110] bg-surface border-b border-app">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-11 flex items-center gap-1 text-xs">
         <button
           type="button"
           onClick={onFilterClick}
-          className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-muted hover:text-main hover:bg-surface-2 transition-colors font-medium"
+          className={`${btnBase} cursor-pointer`}
         >
           <SlidersHorizontal size={14} /> Filter
         </button>
@@ -22,9 +26,9 @@ export default function SecondaryBar({ onFilterClick }) {
         <NavLink
           to="/help"
           className={({ isActive }) =>
-            `inline-flex items-center gap-1.5 px-3 h-8 rounded-md font-medium transition-colors ${
-              isActive ? "text-main bg-surface-2" : "text-muted hover:text-main hover:bg-surface-2"
-            }`
+            isActive
+              ? "inline-flex items-center gap-1.5 px-3 h-8 rounded-md font-medium transition-colors text-main bg-surface-hover"
+              : btnBase
           }
         >
           <HelpCircle size={14} /> FAQ / Help
@@ -32,10 +36,7 @@ export default function SecondaryBar({ onFilterClick }) {
 
         <div className="ml-auto">
           {user && (
-            <Link
-              to="/account/mylistings"
-              className="inline-flex items-center gap-1.5 px-3 h-8 rounded-md text-muted hover:text-main hover:bg-surface-2 transition-colors font-medium"
-            >
+            <Link to="/account/mylistings" className={btnBase}>
               <Package size={14} /> My Listings
             </Link>
           )}

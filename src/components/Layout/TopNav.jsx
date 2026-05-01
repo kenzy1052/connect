@@ -48,11 +48,16 @@ export default function TopNav({ onOpenFilters }) {
     navigate(`/search?q=${encodeURIComponent(q)}`);
   };
 
+  // Shared class — always visibly distinct from nav bg in every theme/mode
+  const hoverBtn =
+    "text-muted hover:text-main hover:bg-surface-hover transition-colors";
+
   return (
     <>
-      {/* ── DESKTOP (md+): single bar ─────────────────── */}
+      {/* ── DESKTOP (md+) ─────────────────────────────────────────── */}
       <header className="hidden md:block relative z-[140] bg-surface backdrop-blur-xl border-b border-app shadow-[0_4px_16px_hsl(var(--text)/0.08)]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center gap-3 md:gap-5">
+          {/* Brand */}
           <Link to="/" className="flex items-center gap-2 shrink-0 group">
             <div className="w-8 h-8 rounded-md gradient-brand grid place-items-center shadow-[0_4px_14px_hsl(var(--primary)/0.4)]">
               <Logo className="w-5 h-5 text-[hsl(var(--primary-fg))]" />
@@ -62,6 +67,7 @@ export default function TopNav({ onOpenFilters }) {
             </span>
           </Link>
 
+          {/* Search */}
           <form
             onSubmit={submitSearch}
             className="flex-1 max-w-2xl mx-auto relative"
@@ -80,10 +86,11 @@ export default function TopNav({ onOpenFilters }) {
             />
           </form>
 
+          {/* Right cluster */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               to="/browse"
-              className="hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-md text-sm font-medium text-muted hover:text-main hover:bg-surface-2 transition-colors"
+              className={`hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-md text-sm font-medium ${hoverBtn}`}
             >
               <Compass size={16} />
               Browse All
@@ -92,7 +99,7 @@ export default function TopNav({ onOpenFilters }) {
             <button
               onClick={toggleMode}
               aria-label="Toggle light/dark"
-              className="h-10 w-10 grid place-items-center rounded-md text-muted hover:text-main hover:bg-surface-2 transition-colors"
+              className={`h-10 w-10 grid place-items-center rounded-md ${hoverBtn}`}
             >
               {mode === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -124,8 +131,8 @@ export default function TopNav({ onOpenFilters }) {
                 <button
                   onClick={() => setMenuOpen((p) => !p)}
                   className={`w-10 h-10 rounded-md overflow-hidden grid place-items-center
-                             bg-surface-2 border border-app text-main font-semibold text-sm transition-all
-                             ${menuOpen ? "ring-2 ring-brand" : "hover:border-[hsl(var(--primary))]"}`}
+                               bg-surface-2 border border-app text-main font-semibold text-sm transition-all
+                               ${menuOpen ? "ring-2 ring-brand" : "hover:border-[hsl(var(--primary))] hover:bg-surface-hover"}`}
                   aria-label="Open profile menu"
                 >
                   {profile?.avatar_url ? (
@@ -151,7 +158,7 @@ export default function TopNav({ onOpenFilters }) {
                         {user.email}
                       </p>
                     </div>
-                    <MenuLink to="/account/customization" Icon={SettingsIcon}>
+                    <MenuLink to="/account" Icon={SettingsIcon}>
                       Settings
                     </MenuLink>
                     {isAdmin && (
@@ -183,9 +190,9 @@ export default function TopNav({ onOpenFilters }) {
         </div>
       </header>
 
-      {/* ── MOBILE (< md): two rows ── */}
+      {/* ── MOBILE (< md): two rows ──────────────────────────────── */}
       <header className="md:hidden sticky top-0 z-[140] bg-surface border-b border-app shadow-[0_2px_12px_hsl(var(--text)/0.07)]">
-        {/* Row 1: Logo + Actions */}
+        {/* Row 1: Logo + name | theme + bell + avatar */}
         <div className="flex items-center justify-between px-4 h-14">
           <Link to="/" className="flex items-center gap-2 shrink-0">
             <Logo className="h-6 w-6 text-brand" />
@@ -198,7 +205,7 @@ export default function TopNav({ onOpenFilters }) {
             <button
               onClick={toggleMode}
               aria-label="Toggle light/dark"
-              className="h-9 w-9 grid place-items-center rounded-md text-muted hover:text-main hover:bg-surface-2 transition-colors"
+              className={`h-9 w-9 grid place-items-center rounded-md ${hoverBtn}`}
             >
               {mode === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
@@ -224,7 +231,7 @@ export default function TopNav({ onOpenFilters }) {
                   onClick={() => setMenuOpen((p) => !p)}
                   className={`w-9 h-9 rounded-md overflow-hidden grid place-items-center
                                bg-surface-2 border border-app text-main font-semibold text-sm transition-all
-                               ${menuOpen ? "ring-2 ring-brand" : ""}`}
+                               ${menuOpen ? "ring-2 ring-brand" : "hover:bg-surface-hover"}`}
                   aria-label="Open profile menu"
                 >
                   {profile?.avatar_url ? (
@@ -250,7 +257,7 @@ export default function TopNav({ onOpenFilters }) {
                         {user.email}
                       </p>
                     </div>
-                    <MenuLink to="/account/customization" Icon={SettingsIcon}>
+                    <MenuLink to="/account" Icon={SettingsIcon}>
                       Settings
                     </MenuLink>
                     {isAdmin && (
@@ -302,8 +309,7 @@ export default function TopNav({ onOpenFilters }) {
             type="button"
             onClick={onOpenFilters}
             aria-label="Open filters"
-            className="h-9 w-9 shrink-0 grid place-items-center rounded-md border border-app bg-surface-2
-                       text-muted hover:text-main transition-colors cursor-pointer"
+            className={`h-9 w-9 shrink-0 grid place-items-center rounded-md border border-app bg-surface-2 cursor-pointer ${hoverBtn}`}
           >
             <SlidersHorizontal size={16} />
           </button>
@@ -317,7 +323,7 @@ function MenuLink({ to, Icon, children, accent = "text-muted" }) {
   return (
     <Link
       to={to}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-2 hover:text-main transition-colors ${accent}`}
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-surface-hover hover:text-main transition-colors ${accent}`}
     >
       <Icon size={15} />
       {children}

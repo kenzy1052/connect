@@ -40,6 +40,7 @@
   --surface: 220 10% 16%;
   --surface-2: 220 10% 20%;
   --surface-3: 221 28% 26%;
+  --surface-hover: 220 10% 26%;
   --border: 221 39% 24%;
   --text: 216 10% 90%;
   --text-muted: 218 14% 70%;
@@ -84,6 +85,7 @@
   --surface: 240 5% 12%;
   --surface-2: 240 6% 16%;
   --surface-3: 240 10% 24%;
+  --surface-hover: 240 6% 22%;
   --border: 220 39% 22%;
   --text: 225 100% 98%;
   --text-muted: 225 16% 72%;
@@ -99,6 +101,7 @@
   --surface: 240 82% 98%;
   --surface-2: 240 100% 99%;
   --surface-3: 154 78% 96%;
+  --surface-hover: 154 40% 88%;
   --border: 153 77% 88%;
   --text: 215 59% 8%;
   --text-muted: 215 16% 37%;
@@ -116,6 +119,7 @@
   --surface: 0 0% 7%;
   --surface-2: 0 0% 11%;
   --surface-3: 45 8% 19%;
+  --surface-hover: 0 0% 17%;
   --border: 45 10% 20%;
   --text: 0 0% 100%;
   --text-muted: 45 18% 72%;
@@ -127,11 +131,11 @@
   color-scheme: dark;
 }
 [data-theme="mtn-yellow"][data-mode="light"] {
-  /* Near-neutral with very subtle warmth — no yellow soup */
   --bg: 40 15% 98%;
   --surface: 0 0% 100%;
   --surface-2: 45 30% 97%;
   --surface-3: 45 55% 93%;
+  --surface-hover: 45 25% 88%;
   --border: 45 35% 86%;
   --text: 30 15% 10%;
   --text-muted: 32 12% 35%;
@@ -149,6 +153,7 @@
   --surface: 220 10% 16%;
   --surface-2: 220 10% 20%;
   --surface-3: 342 22% 26%;
+  --surface-hover: 220 10% 26%;
   --border: 342 28% 22%;
   --text: 216 10% 90%;
   --text-muted: 216 10% 70%;
@@ -160,11 +165,11 @@
   color-scheme: dark;
 }
 [data-theme="crimson-red"][data-mode="light"] {
-  /* Very light, barely-there tint — no eye-strain red surfaces */
   --bg: 0 0% 99%;
   --surface: 350 12% 98%;
   --surface-2: 0 0% 100%;
   --surface-3: 350 22% 95%;
+  --surface-hover: 350 12% 88%;
   --border: 350 16% 90%;
   --text: 220 14% 10%;
   --text-muted: 340 10% 36%;
@@ -176,12 +181,13 @@
   color-scheme: light;
 }
 
-/* ───── 4. Royal Blue ── (default, rated 9/10) ──────────────── */
+/* ───── 4. Royal Blue ── (default) ─────────────────────────── */
 [data-theme="royal-blue"][data-mode="dark"] {
   --bg: 220 14% 10%;
   --surface: 220 10% 16%;
   --surface-2: 220 10% 20%;
   --surface-3: 221 28% 26%;
+  --surface-hover: 220 10% 26%;
   --border: 221 39% 24%;
   --text: 216 10% 90%;
   --text-muted: 218 14% 70%;
@@ -197,6 +203,7 @@
   --surface: 219 100% 96%;
   --surface-2: 216 100% 99%;
   --surface-3: 218 100% 93%;
+  --surface-hover: 218 60% 90%;
   --border: 218 80% 89%;
   --text: 220 14% 10%;
   --text-muted: 218 18% 36%;
@@ -208,12 +215,13 @@
   color-scheme: light;
 }
 
-/* ───── 5. Purple Galaxy ── (dark 9/10, light 8/10) ─────────── */
+/* ───── 5. Purple Galaxy ────────────────────────────────────── */
 [data-theme="purple-galaxy"][data-mode="dark"] {
   --bg: 249 19% 15%;
   --surface: 262 39% 11%;
   --surface-2: 262 30% 16%;
   --surface-3: 261 32% 24%;
+  --surface-hover: 262 30% 22%;
   --border: 261 37% 22%;
   --text: 240 20% 98%;
   --text-muted: 260 14% 75%;
@@ -225,11 +233,11 @@
   color-scheme: dark;
 }
 [data-theme="purple-galaxy"][data-mode="light"] {
-  /* Refined lavender tints, not oversaturated */
   --bg: 240 20% 99%;
   --surface: 268 35% 97%;
   --surface-2: 0 0% 100%;
   --surface-3: 267 45% 93%;
+  --surface-hover: 266 22% 86%;
   --border: 266 30% 88%;
   --text: 249 19% 12%;
   --text-muted: 263 14% 35%;
@@ -241,13 +249,13 @@
   color-scheme: light;
 }
 
-/* ───── 6. Aqua Cyan ── (was 5/10, full overhaul) ──────────── */
+/* ───── 6. Aqua Cyan ────────────────────────────────────────── */
 [data-theme="aqua-cyan"][data-mode="dark"] {
-  /* Warmer, deeper ocean dark — less cold/harsh */
   --bg: 200 40% 7%;
   --surface: 200 35% 12%;
   --surface-2: 200 30% 16%;
   --surface-3: 200 32% 24%;
+  --surface-hover: 200 30% 22%;
   --border: 200 38% 24%;
   --text: 180 60% 95%;
   --text-muted: 185 15% 72%;
@@ -259,11 +267,11 @@
   color-scheme: dark;
 }
 [data-theme="aqua-cyan"][data-mode="light"] {
-  /* Clean white base with subtle cyan tints only on hover surfaces */
   --bg: 0 0% 99%;
   --surface: 185 12% 97%;
   --surface-2: 0 0% 100%;
   --surface-3: 184 22% 93%;
+  --surface-hover: 184 18% 86%;
   --border: 184 22% 87%;
   --text: 198 50% 8%;
   --text-muted: 190 14% 30%;
@@ -275,47 +283,48 @@
   color-scheme: light;
 }
 
-/* ───── 7. Orange Ember ── (was terrible, full overhaul) ────── */
-[data-theme="orange-ember"][data-mode="dark"] {
-  /* Warm dark — amber-brown depth, not muddy */
-  --bg: 24 18% 9%;
-  --surface: 24 22% 13%;
-  --surface-2: 24 20% 17%;
-  --surface-3: 24 26% 24%;
-  --border: 24 32% 24%;
-  --text: 30 80% 96%;
-  --text-muted: 28 15% 72%;
-  --text-faint: 28 10% 52%;
-  --primary: 26 100% 58%;
-  --primary-2: 15 100% 55%;
-  --primary-fg: 24 50% 8%;
-  --accent: 15 92% 55%;
+/* ───── 7. Warm Brown ── (replaces orange-ember, Memora palette) */
+[data-theme="warm-brown"][data-mode="dark"] {
+  --bg: 22 20% 8%;
+  --surface: 22 18% 12%;
+  --surface-2: 22 16% 17%;
+  --surface-3: 22 20% 24%;
+  --surface-hover: 22 18% 23%;
+  --border: 22 22% 26%;
+  --text: 30 40% 94%;
+  --text-muted: 28 16% 70%;
+  --text-faint: 28 10% 50%;
+  --primary: 22 65% 55%;
+  --primary-2: 18 60% 48%;
+  --primary-fg: 22 20% 8%;
+  --accent: 18 55% 58%;
   color-scheme: dark;
 }
-[data-theme="orange-ember"][data-mode="light"] {
-  /* Near-neutral warm white — orange only appears in accents */
-  --bg: 30 8% 99%;
-  --surface: 28 6% 98%;
-  --surface-2: 0 0% 100%;
-  --surface-3: 28 18% 94%;
-  --border: 26 16% 87%;
-  --text: 27 20% 10%;
-  --text-muted: 25 12% 36%;
-  --text-faint: 25 8% 54%;
-  --primary: 26 95% 46%;
-  --primary-2: 15 95% 44%;
-  --primary-fg: 0 0% 100%;
-  --accent: 15 90% 46%;
+[data-theme="warm-brown"][data-mode="light"] {
+  /* Memora palette — cream/linen bg, rich brown primary */
+  --bg: 30 35% 92%;
+  --surface: 28 30% 96%;
+  --surface-2: 28 25% 89%;
+  --surface-3: 25 28% 84%;
+  --surface-hover: 25 30% 81%;
+  --border: 25 25% 78%;
+  --text: 22 40% 14%;
+  --text-muted: 22 22% 36%;
+  --text-faint: 22 14% 54%;
+  --primary: 22 52% 38%;
+  --primary-2: 18 48% 32%;
+  --primary-fg: 30 40% 96%;
+  --accent: 18 50% 44%;
   color-scheme: light;
 }
 
-/* ───── 8. Pink Rose ── (was terrible, full overhaul) ───────── */
+/* ───── 8. Pink Rose ────────────────────────────────────────── */
 [data-theme="pink-rose"][data-mode="dark"] {
-  /* Warm rose-tinted dark — consistent hue, no clashing gray-blue */
   --bg: 330 12% 9%;
   --surface: 332 10% 14%;
   --surface-2: 332 10% 18%;
   --surface-3: 333 16% 26%;
+  --surface-hover: 332 10% 24%;
   --border: 333 22% 24%;
   --text: 335 80% 97%;
   --text-muted: 335 14% 72%;
@@ -327,11 +336,11 @@
   color-scheme: dark;
 }
 [data-theme="pink-rose"][data-mode="light"] {
-  /* Clean white with barely-there rose tints */
   --bg: 0 0% 99%;
   --surface: 335 10% 97%;
   --surface-2: 0 0% 100%;
   --surface-3: 335 18% 93%;
+  --surface-hover: 335 14% 87%;
   --border: 335 16% 88%;
   --text: 220 14% 10%;
   --text-muted: 333 10% 35%;
@@ -369,6 +378,15 @@
   .bg-surface-3 {
     background-color: hsl(var(--surface-3));
   }
+
+  /* ── Hover surface — always visibly distinct from nav bg ── */
+  .bg-surface-hover {
+    background-color: hsl(var(--surface-hover));
+  }
+  .hover\:bg-surface-hover:hover {
+    background-color: hsl(var(--surface-hover));
+  }
+
   .text-main {
     color: hsl(var(--text));
   }
@@ -384,6 +402,7 @@
   .text-price {
     color: hsl(var(--price));
   }
+
   .bg-brand {
     background-color: hsl(var(--primary));
     color: hsl(var(--primary-fg));
@@ -463,7 +482,6 @@ body,
 html {
   scroll-behavior: smooth;
 }
-
 body {
   margin: 0;
   background: linear-gradient(
@@ -477,7 +495,6 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-
 body::before {
   display: none;
 }
@@ -522,7 +539,6 @@ h6 {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
-
 ::selection {
   background: hsl(var(--primary) / 0.28);
   color: hsl(var(--text));
@@ -558,11 +574,13 @@ h6 {
   [class*=" bg-slate-950/"] {
     background-color: hsl(var(--bg)) !important;
   }
+
   .bg-slate-900,
   [class^="bg-slate-900/"],
   [class*=" bg-slate-900/"] {
     background-color: hsl(var(--surface)) !important;
   }
+
   .bg-slate-800,
   .bg-slate-700,
   [class^="bg-slate-800/"],
@@ -571,10 +589,11 @@ h6 {
   [class*=" bg-slate-700/"] {
     background-color: hsl(var(--surface-2)) !important;
   }
+
   .hover\:bg-slate-900:hover,
   .hover\:bg-slate-800:hover,
   .hover\:bg-slate-700:hover {
-    background-color: hsl(var(--surface-3)) !important;
+    background-color: hsl(var(--surface-hover)) !important;
   }
 
   /* ── Borders ── */
@@ -588,6 +607,7 @@ h6 {
   [class*=" border-slate-700/"] {
     border-color: hsl(var(--border)) !important;
   }
+
   .hover\:border-slate-700:hover,
   .hover\:border-slate-600:hover {
     border-color: hsl(var(--text-faint)) !important;
@@ -600,14 +620,17 @@ h6 {
   .text-slate-300 {
     color: hsl(var(--text)) !important;
   }
+
   .text-slate-400,
   .text-slate-500 {
     color: hsl(var(--text-muted)) !important;
   }
+
   .text-slate-600,
   .text-slate-700 {
     color: hsl(var(--text-faint)) !important;
   }
+
   .hover\:text-white:hover,
   .hover\:text-slate-200:hover,
   .hover\:text-slate-300:hover {
@@ -621,6 +644,7 @@ h6 {
   .hover\:bg-indigo-600:hover {
     background-color: hsl(var(--primary)) !important;
   }
+
   .bg-indigo-600.text-white,
   .bg-indigo-500.text-white,
   .bg-brand.text-white,
@@ -628,12 +652,14 @@ h6 {
   .gradient-brand .text-white {
     color: hsl(var(--primary-fg)) !important;
   }
+
   [class^="bg-indigo-500/"],
   [class*=" bg-indigo-500/"],
   [class^="bg-indigo-600/"],
   [class*=" bg-indigo-600/"] {
     background-color: hsl(var(--primary) / 0.14) !important;
   }
+
   .text-indigo-300,
   .text-indigo-400,
   .text-indigo-500,
@@ -641,6 +667,7 @@ h6 {
   .hover\:text-indigo-400:hover {
     color: hsl(var(--primary)) !important;
   }
+
   .border-indigo-400,
   .border-indigo-500,
   [class^="border-indigo-500/"],
@@ -654,6 +681,7 @@ h6 {
   .text-pink-400 {
     color: hsl(var(--accent)) !important;
   }
+
   [class^="bg-fuchsia-"],
   [class*=" bg-fuchsia-"],
   [class^="bg-purple-"],
@@ -667,6 +695,7 @@ h6 {
   .text-green-400 {
     color: hsl(var(--success)) !important;
   }
+
   .bg-emerald-500,
   .bg-emerald-600,
   .bg-green-500,
@@ -674,6 +703,7 @@ h6 {
   .hover\:bg-emerald-600:hover {
     background-color: hsl(var(--success)) !important;
   }
+
   [class^="bg-emerald-500/"],
   [class*=" bg-emerald-500/"],
   [class^="bg-emerald-600/"],
@@ -687,12 +717,14 @@ h6 {
   .text-yellow-400 {
     color: hsl(var(--warning)) !important;
   }
+
   [class^="bg-amber-"],
   [class*=" bg-amber-"],
   [class^="bg-yellow-"],
   [class*=" bg-yellow-"] {
     background-color: hsl(var(--warning) / 0.14) !important;
   }
+
   [class^="border-amber-"],
   [class*=" border-amber-"],
   [class^="border-yellow-"],
@@ -709,16 +741,19 @@ h6 {
   .text-rose-500 {
     color: hsl(var(--danger)) !important;
   }
+
   .bg-red-500,
   .bg-red-600,
   .hover\:bg-red-500:hover,
   .hover\:bg-red-600:hover {
     background-color: hsl(var(--danger)) !important;
   }
+
   .bg-red-500.text-white,
   .bg-red-600.text-white {
     color: white !important;
   }
+
   [class^="bg-red-"],
   [class*=" bg-red-"],
   [class^="bg-rose-"],
@@ -731,6 +766,7 @@ h6 {
   [class*=" bg-black/"] {
     color: white;
   }
+
   [class^="bg-black/"].text-white,
   [class*=" bg-black/"].text-white,
   [class^="bg-black/"] .text-white,

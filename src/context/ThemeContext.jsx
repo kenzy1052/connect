@@ -40,10 +40,11 @@ export const THEMES = [
     secondary: "158 100% 50%",
   },
   {
-    id: "orange-ember",
-    name: "Orange Ember",
-    swatch: "26 100% 55%",
-    secondary: "26 92% 50%",
+    // ↓ was "orange-ember" — renamed to "warm-brown" (Memora palette)
+    id: "warm-brown",
+    name: "Warm Brown",
+    swatch: "22 52% 38%",
+    secondary: "18 48% 32%",
   },
   {
     id: "pink-rose",
@@ -75,15 +76,17 @@ export const FONTS = [
     stack: "'Playfair Display', Georgia, serif",
   },
   {
-    id: "sora",
-    name: "Sora",
-    stack: "'Sora', 'Inter', ui-sans-serif, system-ui, sans-serif",
+    // ↓ was "sora" / "Sora" — replaced with Nunito (clean, rounded, Coolvetica-adjacent)
+    id: "nunito",
+    name: "Nunito",
+    stack: "'Nunito', 'Inter', ui-sans-serif, system-ui, sans-serif",
   },
   {
-    id: "quaker",
-    name: "Quaker",
-    stack: "'Inter', ui-sans-serif, system-ui, sans-serif",
-    headingStack: "'Quaker', 'Playfair Display', Georgia, serif",
+    // ↓ was "quaker" — replaced with Cormorant Garamond (elegant readable script-serif)
+    id: "cormorant",
+    name: "Cormorant",
+    stack: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
+    headingStack: "'Cormorant Garamond', 'Playfair Display', Georgia, serif",
   },
 ];
 
@@ -116,13 +119,26 @@ const REDUCED_MOTION =
 
 export function ThemeProvider({ children }) {
   const stored = readStored() || {};
+
+  // Migrate any stored "orange-ember" → "warm-brown" silently
+  const migratedTheme =
+    stored.theme === "orange-ember" ? "warm-brown" : stored.theme;
+  // Migrate any stored "sora" → "nunito", "quaker" → "cormorant"
+  const migratedFont =
+    stored.font === "sora"
+      ? "nunito"
+      : stored.font === "quaker"
+        ? "cormorant"
+        : stored.font;
+
   const initial = {
-    theme: validOrDefault(stored.theme, THEMES, "royal-blue"),
+    theme: validOrDefault(migratedTheme, THEMES, "royal-blue"),
     mode:
       stored.mode === "light" || stored.mode === "dark" ? stored.mode : "dark",
-    font: validOrDefault(stored.font, FONTS, "inter"),
+    font: validOrDefault(migratedFont, FONTS, "inter"),
     scale: validOrDefault(stored.scale, SCALES, "normal"),
   };
+
   const [theme, setTheme] = useState(initial.theme);
   const [mode, setMode] = useState(initial.mode);
   const [font, setFont] = useState(initial.font);

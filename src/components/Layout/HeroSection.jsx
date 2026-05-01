@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Search, ShieldCheck, Sparkles } from "lucide-react";
 import {
@@ -9,28 +9,46 @@ import {
   AnimatePresence,
 } from "framer-motion";
 
-const CAROUSEL_IMAGES = [
-  "/1.jpg",
-  "/2.jpg",
-  "/3.jpg",
-  "/4.jpg",
-  "/5.jpg",
-  "/6.jpg",
+/* ─────────────────────────────────────────────────────────────────────────────
+ * SLIDES CONFIG
+ * First slide → main display. Remaining slides → thumbnail squares.
+ * Keep exactly 5 entries so there are always 4 thumbnails showing.
+ * ───────────────────────────────────────────────────────────────────────────── */
+const INITIAL_SLIDES = [
+  { src: "/1.jpg", label: "Electronics" },
+  { src: "/2.jpg", label: "Textbooks" },
+  { src: "/3.jpg", label: "Hostels" },
+  { src: "/4.jpg", label: "Fashion" },
+  { src: "/5.jpg", label: "Services" },
 ];
 
+const AUTO_INTERVAL = 3000;
+
+const itemVariant = {
+  hidden: { opacity: 0, y: 18 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.52, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+/* ═════════════════════════════════════════════════════════════════════════════
+ * HeroSection
+ * ═════════════════════════════════════════════════════════════════════════════ */
 export default function HeroSection() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
 
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
-  const visualX = useSpring(useTransform(pointerX, [-0.5, 0.5], [-10, 10]), {
-    stiffness: 70,
-    damping: 26,
+  const visualX = useSpring(useTransform(pointerX, [-0.5, 0.5], [-8, 8]), {
+    stiffness: 60,
+    damping: 22,
   });
-  const visualY = useSpring(useTransform(pointerY, [-0.5, 0.5], [-7, 7]), {
-    stiffness: 70,
-    damping: 26,
+  const visualY = useSpring(useTransform(pointerY, [-0.5, 0.5], [-5, 5]), {
+    stiffness: 60,
+    damping: 22,
   });
 
   const handleMove = (e) => {
@@ -53,34 +71,43 @@ export default function HeroSection() {
         pointerY.set(0);
       }}
       className="relative isolate w-full overflow-hidden bg-app"
-      style={{ height: "100svh", maxHeight: "100svh" }}
+      style={{ minHeight: "100svh" }}
     >
-      {/* Subtle ambient glow — no geometric shapes */}
+      {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-app" />
         <div
-          className="absolute -top-24 right-0 h-[480px] w-[480px] rounded-full opacity-40"
+          className="absolute -top-24 right-0 h-[520px] w-[520px] rounded-full opacity-40"
           style={{
             background:
               "radial-gradient(circle, hsl(var(--primary) / 0.14), transparent 70%)",
-            filter: "blur(48px)",
+            filter: "blur(56px)",
           }}
         />
         <div
-          className="absolute bottom-0 left-0 h-[360px] w-[360px] rounded-full opacity-30"
+          className="absolute bottom-0 left-0 h-[400px] w-[400px] rounded-full opacity-30"
           style={{
             background:
               "radial-gradient(circle, hsl(var(--primary-2) / 0.12), transparent 70%)",
-            filter: "blur(56px)",
+            filter: "blur(64px)",
           }}
         />
       </div>
 
       <div
-        className="mx-auto grid h-full max-w-7xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-10"
-        style={{ paddingTop: "1rem", paddingBottom: "2rem" }}
+        className="mx-auto grid h-full max-w-7xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12"
+        style={{
+          /*
+           * Desktop: clamp collapses the top/bottom padding so the content
+           * sits closer to the navbar — no more oversized white gap.
+           * Mobile: stays tight too.
+           */
+          paddingTop: "clamp(0.75rem, 3svh, 1.5rem)",
+          paddingBottom: "clamp(0.75rem, 3svh, 1.5rem)",
+          minHeight: "100svh",
+        }}
       >
-        {/* LEFT */}
+        {/* ── LEFT — text & search ── */}
         <motion.div
           initial="hidden"
           animate="show"
@@ -90,7 +117,7 @@ export default function HeroSection() {
               transition: { staggerChildren: 0.09, delayChildren: 0.04 },
             },
           }}
-          className="flex flex-col justify-center max-w-lg"
+          className="flex flex-col justify-center max-w-lg mx-auto lg:mx-0 items-center text-center lg:items-start lg:text-left"
         >
           <motion.span
             variants={itemVariant}
@@ -112,7 +139,7 @@ export default function HeroSection() {
 
           <motion.p
             variants={itemVariant}
-            className="mt-3 text-sm leading-relaxed text-muted sm:text-[0.95rem]"
+            className="mt-3 text-sm leading-relaxed text-muted sm:text-[0.95rem] max-w-md"
           >
             CampusConnect is the marketplace built for UCC students — buy, sell
             and discover phones, textbooks, hostels, services, and more from
@@ -123,7 +150,7 @@ export default function HeroSection() {
           <motion.form
             variants={itemVariant}
             onSubmit={submit}
-            className="mt-6 w-full"
+            className="mt-6 w-full max-w-md"
           >
             <div className="flex items-center gap-2 rounded-lg border border-app bg-surface p-1.5 shadow-sm">
               <Search size={16} className="ml-2.5 shrink-0 text-faint" />
@@ -148,7 +175,7 @@ export default function HeroSection() {
           {/* CTAs */}
           <motion.div
             variants={itemVariant}
-            className="mt-4 flex flex-wrap items-center gap-2.5"
+            className="mt-4 flex flex-wrap items-center justify-center lg:justify-start gap-2.5"
           >
             <Link
               to="/browse"
@@ -174,174 +201,307 @@ export default function HeroSection() {
           </motion.p>
         </motion.div>
 
-        {/* RIGHT — Carousel only */}
+        {/* ── RIGHT — gallery, desktop only ── */}
         <motion.div
           style={{ x: visualX, y: visualY }}
-          className="relative flex h-full max-h-[560px] w-full items-center justify-center"
+          className="hidden lg:flex items-center justify-center w-full"
         >
-          <HeroCarousel images={CAROUSEL_IMAGES} />
+          <HeroGallery slides={INITIAL_SLIDES} interval={AUTO_INTERVAL} />
         </motion.div>
       </div>
     </section>
   );
 }
 
-const itemVariant = {
-  hidden: { opacity: 0, y: 18 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.52, ease: [0.22, 1, 0.36, 1] },
-  },
-};
+/* ═════════════════════════════════════════════════════════════════════════════
+ * HeroGallery
+ *
+ * Layout:
+ *   ┌─────────────────────────────────────┐
+ *   │           MAIN DISPLAY (16:9)       │  ← auto-swipes, no click
+ *   └─────────────────────────────────────┘
+ *   ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐
+ *   │   □    │ │   □    │ │   □    │ │   □    │  ← 4 equal squares, clickable
+ *   └────────┘ └────────┘ └────────┘ └────────┘
+ *
+ * • 4 thumbnails always visible (slides[1–4]).
+ * • Each thumbnail is a perfect square (aspect-ratio 1/1).
+ * • Row spans full width of main display.
+ * • Click swaps that thumb's image into the main display.
+ * ═════════════════════════════════════════════════════════════════════════════ */
+function HeroGallery({ slides = INITIAL_SLIDES, interval = AUTO_INTERVAL }) {
+  const [mainSlide, setMainSlide] = useState(slides[0]);
+  const [thumbs, setThumbs] = useState(slides.slice(1));
+  const [activeIdx, setActiveIdx] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [fading, setFading] = useState(false);
 
-/**
- * Full-featured hero carousel — large center card flanked by peeking side cards.
- * Smooth Framer Motion springs. Auto-advances. Clickable.
- */
-function HeroCarousel({ images }) {
-  const [active, setActive] = useState(0);
-  const len = images.length;
-  const timerRef = useRef(null);
-
-  const resetTimer = () => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => setActive((i) => (i + 1) % len), 3400);
-  };
+  const rafRef = useRef(null);
+  const startRef = useRef(null);
+  const stateRef = useRef({ paused, progress, activeIdx, mainSlide, thumbs });
 
   useEffect(() => {
-    resetTimer();
-    return () => clearInterval(timerRef.current);
-  }, [len]);
+    stateRef.current = { paused, progress, activeIdx, mainSlide, thumbs };
+  });
 
-  const goTo = (i) => {
-    setActive(i);
-    resetTimer();
-  };
+  const transitionTo = useCallback((newMain, newThumbs, newActiveIdx) => {
+    setFading(true);
+    setTimeout(() => {
+      setMainSlide(newMain);
+      setThumbs(newThumbs);
+      setActiveIdx(newActiveIdx);
+      setProgress(0);
+      startRef.current = null;
+      setFading(false);
+    }, 220);
+  }, []);
 
-  const prev = () => goTo((active - 1 + len) % len);
-  const next = () => goTo((active + 1) % len);
+  const onThumbClick = useCallback(
+    (thumbIdx) => {
+      const { mainSlide: curMain, thumbs: curThumbs } = stateRef.current;
+      const clicked = curThumbs[thumbIdx];
+      const newThumbs = [...curThumbs];
+      newThumbs[thumbIdx] = curMain;
+      transitionTo(clicked, newThumbs, thumbIdx);
+    },
+    [transitionTo],
+  );
 
-  // slot: -1 = left peek, 0 = center, 1 = right peek, else hidden
-  const slot = (i) => {
-    const diff = (i - active + len) % len;
-    if (diff === 0) return 0;
-    if (diff === 1) return 1;
-    if (diff === len - 1) return -1;
-    return 2; // hidden
-  };
+  useEffect(() => {
+    if (thumbs.length === 0) return;
 
-  const config = {
-    type: "spring",
-    stiffness: 200,
-    damping: 28,
-    mass: 0.7,
-  };
+    const tick = (ts) => {
+      const { paused: isPaused } = stateRef.current;
+      if (!isPaused) {
+        if (!startRef.current) startRef.current = ts;
+        const pct = Math.min((ts - startRef.current) / interval, 1);
+        setProgress(pct);
+
+        if (pct >= 1) {
+          const {
+            mainSlide: curMain,
+            thumbs: curThumbs,
+            activeIdx: curActive,
+          } = stateRef.current;
+          const nextIdx =
+            curActive === null ? 0 : (curActive + 1) % curThumbs.length;
+          const nextThumb = curThumbs[nextIdx];
+          const newThumbs = [...curThumbs];
+          newThumbs[nextIdx] = curMain;
+
+          setFading(true);
+          setTimeout(() => {
+            setMainSlide(nextThumb);
+            setThumbs(newThumbs);
+            setActiveIdx(nextIdx);
+            setProgress(0);
+            startRef.current = null;
+            setFading(false);
+          }, 220);
+
+          return;
+        }
+      } else {
+        startRef.current = null;
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interval, thumbs.length, paused]);
 
   return (
     <div
-      className="relative flex w-full flex-col items-center gap-4"
-      style={{ height: "100%" }}
+      className="flex flex-col gap-2.5 w-full select-none"
+      style={{ maxWidth: 520 }}
     >
-      {/* Cards stage */}
-      <div className="relative w-full flex-1" style={{ minHeight: 0 }}>
-        {images.map((src, i) => {
-          const s = slot(i);
-          const isCenter = s === 0;
-          const isVisible = Math.abs(s) <= 1;
+      {/* ── MAIN DISPLAY ── */}
+      <div
+        className="relative w-full overflow-hidden rounded-2xl border border-app bg-surface-2"
+        style={{
+          aspectRatio: "16 / 9",
+          boxShadow:
+            "0 24px 64px rgba(0,0,0,0.18), 0 0 0 1px hsl(var(--app-border)/0.4)",
+        }}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={mainSlide.src}
+            src={mainSlide.src}
+            alt={mainSlide.label}
+            loading="lazy"
+            decoding="async"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: fading ? 0 : 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        </AnimatePresence>
 
-          const xPct =
-            s === 0
-              ? "0%"
-              : s === 1
-                ? "55%"
-                : s === -1
-                  ? "-55%"
-                  : s > 1
-                    ? "110%"
-                    : "-110%";
-          const scale = isCenter ? 1 : 0.78;
-          const opacity = isCenter ? 1 : isVisible ? 0.6 : 0;
-          const zIndex = isCenter ? 20 : isVisible ? 10 : 0;
-          const rotate = s === 0 ? 0 : s === 1 ? 3 : s === -1 ? -3 : 0;
+        {/* Gradient */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(to top, hsl(var(--bg) / 0.65) 0%, transparent 50%)",
+          }}
+        />
 
-          return (
-            <motion.div
-              key={src}
-              onClick={() => !isCenter && goTo(i)}
-              initial={false}
-              animate={{ x: xPct, scale, opacity, rotate, zIndex }}
-              transition={config}
-              className="absolute inset-0 mx-auto overflow-hidden rounded-2xl border border-app bg-surface shadow-2xl"
+        {/* Label */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={mainSlide.label}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.25 }}
+            className="absolute bottom-3 left-4 flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold backdrop-blur-md border"
+            style={{
+              background: "hsl(var(--bg) / 0.78)",
+              borderColor: "hsl(var(--app-border) / 0.35)",
+              color: "hsl(var(--main))",
+            }}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full animate-pulse"
+              style={{ background: "hsl(var(--primary))" }}
+            />
+            {mainSlide.label}
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Paused badge */}
+        <AnimatePresence>
+          {paused && (
+            <motion.span
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18 }}
+              className="absolute top-3 right-3 rounded-md px-2.5 py-1 text-[10px] font-semibold backdrop-blur-sm border border-app"
               style={{
-                width: "62%",
-                left: "19%",
-                cursor: isCenter ? "default" : "pointer",
-                boxShadow: isCenter
-                  ? "0 24px 64px rgba(0,0,0,0.28)"
-                  : "0 8px 24px rgba(0,0,0,0.16)",
+                background: "hsl(var(--bg) / 0.72)",
+                color: "hsl(var(--muted))",
               }}
             >
+              Paused
+            </motion.span>
+          )}
+        </AnimatePresence>
+
+        {/* Progress bar */}
+        {thumbs.length > 0 && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[3px]"
+            style={{ background: "hsl(var(--app-border) / 0.4)" }}
+          >
+            <motion.div
+              className="h-full rounded-full"
+              style={{
+                background: "hsl(var(--primary))",
+                width: `${progress * 100}%`,
+              }}
+              transition={{ ease: "linear" }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ── THUMBNAIL ROW — 4 equal squares ──
+           flex-1 on each thumb means they share the full container width equally.
+           aspect-ratio 1/1 keeps every thumb a perfect square.
+      ── */}
+      {thumbs.length > 0 && (
+        <div className="flex w-full gap-2.5">
+          {thumbs.map((thumb, i) => (
+            <motion.button
+              key={`${thumb.src}-${i}`}
+              onClick={() => onThumbClick(i)}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ type: "spring", stiffness: 300, damping: 22 }}
+              className="relative flex-1 overflow-hidden focus:outline-none focus-visible:ring-2"
+              style={{
+                aspectRatio: "1 / 1",
+                borderRadius: 12,
+                borderStyle: "solid",
+                borderWidth: activeIdx === i ? 2 : 1.5,
+                borderColor:
+                  activeIdx === i
+                    ? "hsl(var(--primary))"
+                    : "hsl(var(--app-border))",
+                background: "hsl(var(--surface-2))",
+                cursor: "pointer",
+                boxShadow:
+                  activeIdx === i
+                    ? "0 0 0 3px hsl(var(--primary) / 0.15)"
+                    : "none",
+                transition: "border-color 0.2s, box-shadow 0.2s",
+              }}
+              aria-label={`View ${thumb.label}`}
+            >
               <img
-                src={src}
-                alt=""
+                src={thumb.src}
+                alt={thumb.label}
                 loading="lazy"
                 decoding="async"
-                className="h-full w-full object-cover"
-                style={{ display: "block" }}
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{
+                  opacity: activeIdx === i ? 1 : 0.82,
+                  transition: "opacity 0.2s",
+                }}
                 onError={(e) => {
-                  e.currentTarget.parentElement.style.background =
-                    "hsl(var(--surface-2))";
                   e.currentTarget.style.display = "none";
                 }}
               />
-              {/* Bottom gradient */}
+
+              {/* Gradient */}
               <div
                 className="pointer-events-none absolute inset-0"
                 style={{
                   background:
-                    "linear-gradient(to top, hsl(var(--bg) / 0.55) 0%, transparent 50%)",
+                    "linear-gradient(to top, hsl(var(--bg) / 0.58) 0%, transparent 60%)",
                 }}
               />
-              {/* Center badge */}
-              {isCenter && (
-                <motion.div
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                  className="absolute bottom-4 left-4 right-4 flex items-center justify-between"
-                >
-                  <span className="rounded-md bg-[hsl(var(--bg)/0.75)] px-3 py-1.5 text-xs font-semibold text-main backdrop-blur-sm">
-                    Featured listing
-                  </span>
-                  <span className="rounded-md bg-brand px-2.5 py-1 text-[11px] font-bold text-[hsl(var(--primary-fg))]">
-                    {active + 1} / {len}
-                  </span>
-                </motion.div>
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
 
-      {/* Dot indicators */}
-      <div className="flex items-center gap-2 pb-1">
-        {images.map((_, i) => (
-          <motion.button
-            key={i}
-            type="button"
-            aria-label={`Slide ${i + 1}`}
-            onClick={() => goTo(i)}
-            animate={{
-              width: i === active ? 24 : 7,
-              opacity: i === active ? 1 : 0.35,
-            }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="h-[7px] rounded-full"
-            style={{ background: "hsl(var(--primary))" }}
-          />
-        ))}
-      </div>
+              {/* Active tint */}
+              <AnimatePresence>
+                {activeIdx === i && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0"
+                    style={{
+                      background: "hsl(var(--primary) / 0.14)",
+                      borderRadius: "inherit",
+                      pointerEvents: "none",
+                    }}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Label */}
+              <span
+                className="absolute bottom-1.5 left-0 right-0 text-center text-[9px] font-bold tracking-wide drop-shadow"
+                style={{ color: "hsl(var(--bg))" }}
+              >
+                {thumb.label}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

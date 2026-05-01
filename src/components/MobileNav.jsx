@@ -1,5 +1,5 @@
-import { NavLink } from "react-router-dom";
-import { Home, Bookmark, PlusCircle, Compass, LayoutDashboard } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { Home, Bookmark, PlusCircle, Compass, Settings } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const items = [
@@ -7,12 +7,19 @@ const items = [
   { to: "/browse", icon: Compass, label: "Browse" },
   { to: "/create", icon: PlusCircle, label: "Sell", accent: true },
   { to: "/account/saved", icon: Bookmark, label: "Saved" },
-  { to: "/account", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/account", icon: Settings, label: "Settings" },
 ];
 
 export default function MobileNav() {
   const { user } = useAuth();
+  const location = useLocation();
   if (!user) return null;
+
+  // Custom active logic so both "Saved" and "Settings" don't light up simultaneously
+  // Settings is active for ALL /account/* routes EXCEPT /account/saved (which has its own tab)
+  const isSettingsActive =
+    location.pathname.startsWith("/account") &&
+    !location.pathname.startsWith("/account/saved");
 
   return (
     <nav
@@ -23,23 +30,28 @@ export default function MobileNav() {
         paddingTop: "0.4rem",
       }}
     >
-      {items.map(({ to, icon: Icon, label, accent }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === "/"}
-          className={({ isActive }) =>
-            `flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
+      {items.map(({ to, icon: Icon, label, accent }) => {
+        const isActive =
+          to === "/account"
+            ? isSettingsActive
+            : to === "/"
+              ? location.pathname === "/"
+              : location.pathname.startsWith(to);
+
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            end
+            className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
               accent
                 ? "text-[hsl(var(--primary-fg))]"
                 : isActive
                   ? "text-brand"
                   : "text-faint hover:text-main"
-            }`
-          }
-        >
-          {({ isActive }) =>
-            accent ? (
+            }`}
+          >
+            {accent ? (
               <>
                 <span className="h-9 w-9 grid place-items-center rounded-xl gradient-brand shadow-[0_4px_14px_hsl(var(--primary)/0.4)] -mt-5">
                   <Icon size={20} className="text-[hsl(var(--primary-fg))]" />
@@ -52,15 +64,17 @@ export default function MobileNav() {
               <>
                 <Icon size={21} />
                 <span
-                  className={`text-[9px] font-bold uppercase tracking-wider ${isActive ? "text-brand" : ""}`}
+                  className={`text-[9px] font-bold uppercase tracking-wider ${
+                    isActive ? "text-brand" : ""
+                  }`}
                 >
                   {label}
                 </span>
               </>
-            )
-          }
-        </NavLink>
-      ))}
+            )}
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }
