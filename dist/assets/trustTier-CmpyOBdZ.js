@@ -1,1 +1,0 @@
-var e=e=>e>=80?{label:`Verified`,color:`text-emerald-400`}:e>=60?{label:`Trusted`,color:`text-indigo-400`}:e>=40?{label:`Active`,color:`text-yellow-400`}:{label:`New`,color:`text-slate-400`};export{e as t};
