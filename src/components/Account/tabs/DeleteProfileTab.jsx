@@ -2,10 +2,11 @@ import { useState } from "react";
 import { AlertTriangle, Loader2, Trash2, ShieldAlert } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../context/AuthContext";
-import toast from "react-hot-toast";
 import { SettingsHeader } from "../SettingsPrimitives";
+import { useToast } from "../../../context/ToastContext";
 
 export default function DeleteProfileTab() {
+  const toast = useToast();
   const { logout } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -15,7 +16,9 @@ export default function DeleteProfileTab() {
     if (!canDelete) return;
     setDeleting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) throw new Error("No active session found.");
 
       const response = await fetch(
@@ -26,7 +29,7 @@ export default function DeleteProfileTab() {
             Authorization: `Bearer ${session.access_token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
       if (!response.ok) {
         const errorText = await response.text();
@@ -43,7 +46,7 @@ export default function DeleteProfileTab() {
   };
 
   return (
-    <div className="space-y-8" >
+    <div className="space-y-8">
       <SettingsHeader
         eyebrow="Danger zone"
         title="Delete account"
@@ -63,22 +66,35 @@ export default function DeleteProfileTab() {
         <div className="px-5 py-5 space-y-5">
           <ul className="text-xs text-muted space-y-1.5 leading-relaxed">
             <li className="flex items-start gap-2">
-              <AlertTriangle size={12} className="mt-0.5 shrink-0 text-[hsl(var(--danger))]" />
+              <AlertTriangle
+                size={12}
+                className="mt-0.5 shrink-0 text-[hsl(var(--danger))]"
+              />
               All your active listings will be permanently removed.
             </li>
             <li className="flex items-start gap-2">
-              <AlertTriangle size={12} className="mt-0.5 shrink-0 text-[hsl(var(--danger))]" />
+              <AlertTriangle
+                size={12}
+                className="mt-0.5 shrink-0 text-[hsl(var(--danger))]"
+              />
               Your profile, contact numbers, and saved items will be deleted.
             </li>
             <li className="flex items-start gap-2">
-              <AlertTriangle size={12} className="mt-0.5 shrink-0 text-[hsl(var(--danger))]" />
+              <AlertTriangle
+                size={12}
+                className="mt-0.5 shrink-0 text-[hsl(var(--danger))]"
+              />
               You will lose access immediately and cannot recover this account.
             </li>
           </ul>
 
           <div className="space-y-2">
             <label htmlFor="confirm" className="text-xs font-medium text-muted">
-              Type <span className="font-bold text-[hsl(var(--danger))]">DELETE</span> to confirm
+              Type{" "}
+              <span className="font-bold text-[hsl(var(--danger))]">
+                DELETE
+              </span>{" "}
+              to confirm
             </label>
             <input
               id="confirm"
@@ -94,7 +110,11 @@ export default function DeleteProfileTab() {
             disabled={!canDelete || deleting}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-md bg-[hsl(var(--danger))] text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-transform active:scale-[0.98] hover:brightness-110"
           >
-            {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            {deleting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
             {deleting ? "Deleting…" : "Permanently delete account"}
           </button>
         </div>

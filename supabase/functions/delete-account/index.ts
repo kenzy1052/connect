@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_ANON_KEY")!,
     { global: { headers: { Authorization: auth } } },
   );
+
   const {
     data: { user },
     error: userError,
@@ -42,31 +43,42 @@ Deno.serve(async (req) => {
     );
   }
 
+  const uid = user.id;
+
   // Use service role to perform privileged deletes
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
-  // Explicitly wipe user-owned rows (belt-and-braces alongside FK cascades)
-  const uid = user.id;
-  await admin
-    .from("reviews")
-    .delete()
-    .or(`reviewer_id.eq.${uid},seller_id.eq.${uid}`);
-  await admin.from("saved_listings").delete().eq("user_id", uid);
-  await admin.from("listing_engagements").delete().eq("user_id", uid);
-  await admin.from("reports").delete().eq("reporter_id", uid);
-  await admin.from("notifications").delete().eq("user_id", uid);
-  await admin.from("contact_numbers").delete().eq("user_id", uid);
-  await admin.from("notification_preferences").delete().eq("user_id", uid);
-  await admin.from("privacy_settings").delete().eq("user_id", uid);
-  await admin.from("trust_logs").delete().eq("profile_id", uid);
-  await admin.from("listings").delete().eq("seller_id", uid);
-  await admin.from("profiles").delete().eq("id", uid);
+  // Execute all explicit table wipes concurrently for better performance
+  // This cleans up data before the final Auth User deletion
+  try {
+    await Promise.all([
+      admin
+        .from("reviews")
+        .delete()
+        .or(`reviewer_id.eq.${uid},seller_id.eq.${uid}`),
+      admin.from("saved_listings").delete().eq("user_id", uid),
+      admin.from("listing_engagements").delete().eq("user_id", uid),
+      admin.from("reports").delete().eq("reporter_id", uid),
+      admin.from("notifications").delete().eq("user_id", uid),
+      admin.from("contact_numbers").delete().eq("user_id", uid),
+      admin.from("notification_preferences").delete().eq("user_id", uid),
+      admin.from("privacy_settings").delete().eq("user_id", uid),
+      admin.from("trust_logs").delete().eq("profile_id", uid),
+      admin.from("listings").delete().eq("seller_id", uid),
+      admin.from("profiles").delete().eq("id", uid),
+    ]);
+  } catch (err) {
+    console.error("Error during batch delete:", err);
+    // We continue to the final delete even if a cleanup step fails
+    // to ensure the account is actually closed.
+  }
 
-  // Finally delete the auth user — triggers any remaining FK cascades
+  // Finally delete the auth user — triggers any remaining database FK cascades
   const { error: deleteError } = await admin.auth.admin.deleteUser(uid);
+
   if (deleteError) {
     return new Response(JSON.stringify({ error: deleteError.message }), {
       status: 500,

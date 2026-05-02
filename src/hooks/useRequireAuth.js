@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { toast } from "react-hot-toast"; // Or your preferred toast library
+import { useToast } from "../context/ToastContext";
 
 /**
  * Returns a `gate(action)` function:
@@ -8,6 +8,7 @@ import { toast } from "react-hot-toast"; // Or your preferred toast library
  * - if not, it triggers a toast and redirects to /signin after a short delay
  */
 export function useRequireAuth() {
+  const toast = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../context/AuthContext";
-import toast from "react-hot-toast";
-import { Loader2, CheckCircle2, KeyRound, ShieldCheck, Lock, Eye, EyeOff } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  KeyRound,
+  ShieldCheck,
+  Lock,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { SettingsHeader, SettingsSection } from "../SettingsPrimitives";
+import { useToast } from "../../../context/ToastContext";
 
 export default function SecurityTab() {
+  const toast = useToast();
   const { user } = useAuth();
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -24,17 +33,29 @@ export default function SecurityTab() {
   })();
 
   const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"][strength];
-  const strengthColor = ["", "bg-[hsl(var(--danger))]", "bg-amber-500", "bg-amber-400", "bg-[hsl(var(--primary))]"][strength];
+  const strengthColor = [
+    "",
+    "bg-[hsl(var(--danger))]",
+    "bg-amber-500",
+    "bg-amber-400",
+    "bg-[hsl(var(--primary))]",
+  ][strength];
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setSuccess(false);
 
-    if (!currentPassword) return toast.error("Please enter your current password.");
+    if (!currentPassword)
+      return toast.error("Please enter your current password.");
     if (!password) return toast.error("Please enter a new password.");
-    if (password.length < 6) return toast.error("New password must be at least 6 characters.");
-    if (password !== confirmPassword) return toast.error("New passwords do not match.");
-    if (currentPassword === password) return toast.error("New password must be different from current password.");
+    if (password.length < 6)
+      return toast.error("New password must be at least 6 characters.");
+    if (password !== confirmPassword)
+      return toast.error("New passwords do not match.");
+    if (currentPassword === password)
+      return toast.error(
+        "New password must be different from current password.",
+      );
 
     setSubmitting(true);
     try {
@@ -118,7 +139,9 @@ export default function SecurityTab() {
                 </div>
                 <p className="text-[11px] text-faint">
                   Password strength:{" "}
-                  <span className="text-main font-medium">{strengthLabel || "Too short"}</span>
+                  <span className="text-main font-medium">
+                    {strengthLabel || "Too short"}
+                  </span>
                 </p>
               </div>
             )}
@@ -133,20 +156,32 @@ export default function SecurityTab() {
             />
 
             {confirmPassword && password !== confirmPassword && (
-              <p className="text-xs text-[hsl(var(--danger))]">Passwords do not match.</p>
+              <p className="text-xs text-[hsl(var(--danger))]">
+                Passwords do not match.
+              </p>
             )}
-            {confirmPassword && password === confirmPassword && confirmPassword.length > 0 && (
-              <p className="text-xs text-[hsl(var(--primary))]">Passwords match.</p>
-            )}
+            {confirmPassword &&
+              password === confirmPassword &&
+              confirmPassword.length > 0 && (
+                <p className="text-xs text-[hsl(var(--primary))]">
+                  Passwords match.
+                </p>
+              )}
           </div>
 
           <div className="pt-2">
             <button
               type="submit"
-              disabled={submitting || !currentPassword || !password || !confirmPassword}
+              disabled={
+                submitting || !currentPassword || !password || !confirmPassword
+              }
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-brand text-[hsl(var(--primary-fg))] text-sm font-semibold disabled:opacity-50 transition-transform active:scale-[0.98] hover:brightness-110"
             >
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
               {submitting ? "Updating…" : "Update password"}
             </button>
           </div>
@@ -156,7 +191,14 @@ export default function SecurityTab() {
   );
 }
 
-function PasswordInput({ id, label, value, onChange, placeholder, icon: Icon }) {
+function PasswordInput({
+  id,
+  label,
+  value,
+  onChange,
+  placeholder,
+  icon: Icon,
+}) {
   const [show, setShow] = useState(false);
   return (
     <div className="space-y-1.5">
@@ -165,7 +207,10 @@ function PasswordInput({ id, label, value, onChange, placeholder, icon: Icon }) 
       </label>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" size={14} />
+          <Icon
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-faint"
+            size={14}
+          />
         )}
         <input
           id={id}

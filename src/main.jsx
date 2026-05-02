@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async"; // ← add
 import "./index.css";
 import App from "./App.jsx";
+import { ToastProvider } from "./context/ToastContext";
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -20,9 +21,9 @@ const root = createRoot(document.getElementById("root"));
 root.render(
   <StrictMode>
     <HelmetProvider>
-      {" "}
-      {/* ← wrap App */}
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </HelmetProvider>
   </StrictMode>,
 );

@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import toast from "react-hot-toast";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -11,6 +10,33 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true,
   },
 });
+
+/**
+ * Shows a lightweight error toast without needing the React context.
+ * Used only in non-component code (e.g. session expiry handler).
+ */
+function showNativeError(message) {
+  const el = document.createElement("div");
+  el.textContent = message;
+  Object.assign(el.style, {
+    position: "fixed",
+    bottom: "24px",
+    left: "50%",
+    transform: "translateX(-50%)",
+    background: "hsl(var(--surface, 30 30 30))",
+    color: "hsl(var(--danger, 0 72% 65%))",
+    border: "1px solid hsl(var(--danger, 0 72% 65%) / 0.4)",
+    padding: "11px 20px",
+    borderRadius: "10px",
+    fontSize: "14px",
+    fontWeight: "500",
+    zIndex: "9999",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+    animation: "fadeIn 0.2s ease",
+  });
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 4500);
+}
 
 /**
  * Global JWT-expiry handler.
@@ -31,7 +57,7 @@ export function handleAuthError(err) {
   if (!expired || bouncing) return expired;
   bouncing = true;
   supabase.auth.signOut().finally(() => {
-    toast.error("Your session expired. Please sign in again.");
+    showNativeError("Your session expired. Please sign in again.");
     const next = encodeURIComponent(
       window.location.pathname + window.location.search,
     );

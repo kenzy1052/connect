@@ -122,7 +122,7 @@ export default function HeroSection() {
 
           <motion.h1
             variants={itemVariant}
-            className="mt-4 text-[2.1rem] font-bold leading-[1.18] tracking-tight text-main sm:text-[2.5rem] md:text-[2.75rem]"
+            className="mt-4 w-full text-[1.7rem] font-bold leading-[1.18] tracking-tight text-main sm:text-[2.2rem] md:text-[2.75rem]"
           >
             Trade smarter,{" "}
             <span className="text-brand" style={{ WebkitTextStroke: "0px" }}>
@@ -132,7 +132,7 @@ export default function HeroSection() {
 
           <motion.p
             variants={itemVariant}
-            className="mt-3 text-sm leading-relaxed text-muted sm:text-[0.95rem] max-w-md"
+            className="mt-3 w-full text-sm leading-relaxed text-muted sm:text-[0.95rem]"
           >
             CampusConnect is the marketplace built for UCC students — buy, sell
             and discover phones, textbooks, hostels, services, and more from
@@ -143,7 +143,7 @@ export default function HeroSection() {
           <motion.form
             variants={itemVariant}
             onSubmit={submit}
-            className="mt-6 w-full max-w-md"
+            className="mt-6 w-full"
           >
             <div className="flex items-center gap-2 rounded-lg border border-app bg-surface p-1.5 shadow-sm">
               <Search size={16} className="ml-2.5 shrink-0 text-faint" />

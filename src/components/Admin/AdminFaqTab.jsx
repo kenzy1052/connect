@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { Loader2, Trash2, CheckCircle2 } from "lucide-react";
-import toast from "react-hot-toast";
-
+import { useToast } from "../../context/ToastContext";
 export default function AdminFaqTab() {
+  const toast = useToast();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -85,7 +85,9 @@ export default function AdminFaqTab() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Questions List */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <h3 className="text-lg font-bold text-white">Questions ({questions.length})</h3>
+          <h3 className="text-lg font-bold text-white">
+            Questions ({questions.length})
+          </h3>
           <div className="space-y-2 max-h-96 overflow-y-auto">
             {questions.length === 0 ? (
               <p className="text-slate-500 text-sm">No questions yet.</p>
@@ -103,12 +105,18 @@ export default function AdminFaqTab() {
                     setAnswer(q.answer || "");
                   }}
                 >
-                  <p className="text-sm font-bold text-white truncate">{q.question}</p>
+                  <p className="text-sm font-bold text-white truncate">
+                    {q.question}
+                  </p>
                   <div className="flex items-center gap-2 mt-1">
                     {q.answer ? (
-                      <span className="text-[10px] text-emerald-400 font-bold">✓ Answered</span>
+                      <span className="text-[10px] text-emerald-400 font-bold">
+                        ✓ Answered
+                      </span>
                     ) : (
-                      <span className="text-[10px] text-amber-400 font-bold">⚠ Pending</span>
+                      <span className="text-[10px] text-amber-400 font-bold">
+                        ⚠ Pending
+                      </span>
                     )}
                     <button
                       onClick={(e) => {
@@ -134,7 +142,9 @@ export default function AdminFaqTab() {
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
                   Question
                 </p>
-                <p className="text-white font-bold">{selectedQuestion.question}</p>
+                <p className="text-white font-bold">
+                  {selectedQuestion.question}
+                </p>
               </div>
 
               <div>
@@ -163,7 +173,9 @@ export default function AdminFaqTab() {
               </button>
             </form>
           ) : (
-            <p className="text-slate-500 text-center py-12">Select a question to answer</p>
+            <p className="text-slate-500 text-center py-12">
+              Select a question to answer
+            </p>
           )}
         </div>
       </div>

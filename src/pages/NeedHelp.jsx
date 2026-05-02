@@ -1,34 +1,81 @@
 import { useState, useEffect } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { HelpCircle, MessageCircle, Info, MessageSquare, Loader2 } from "lucide-react";
+import {
+  HelpCircle,
+  MessageCircle,
+  Info,
+  MessageSquare,
+  Loader2,
+} from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
-import toast from "react-hot-toast";
-
+import { useToast } from "../context/ToastContext";
 function InformationTab() {
+  const toast = useToast();
   return (
     <div className="space-y-6">
       <p className="text-slate-400">
-        Welcome to the CampusConnect Help Center. Here you can find answers to common questions and get support for any issues you might encounter.
+        Welcome to the CampusConnect Help Center. Here you can find answers to
+        common questions and get support for any issues you might encounter.
       </p>
       <section>
         <h2 className="text-xl font-bold text-white mb-3">Getting Started</h2>
         <ul className="list-disc list-inside space-y-2 text-slate-300">
-          <li><Link to="/about" className="text-indigo-400 hover:underline">About CampusConnect</Link></li>
-          <li><Link to="/terms" className="text-indigo-400 hover:underline">Terms of Service</Link></li>
-          <li><Link to="/privacy" className="text-indigo-400 hover:underline">Privacy Policy</Link></li>
-          <li><Link to="/safety" className="text-indigo-400 hover:underline">Safety Tips</Link></li>
+          <li>
+            <Link to="/about" className="text-indigo-400 hover:underline">
+              About CampusConnect
+            </Link>
+          </li>
+          <li>
+            <Link to="/terms" className="text-indigo-400 hover:underline">
+              Terms of Service
+            </Link>
+          </li>
+          <li>
+            <Link to="/privacy" className="text-indigo-400 hover:underline">
+              Privacy Policy
+            </Link>
+          </li>
+          <li>
+            <Link to="/safety" className="text-indigo-400 hover:underline">
+              Safety Tips
+            </Link>
+          </li>
         </ul>
       </section>
       <section>
         <h2 className="text-xl font-bold text-white mb-3">Contact Support</h2>
         <p className="text-slate-400">
-          If you can't find what you're looking for, our support team is here to help.
-          You can reach us via:
+          If you can't find what you're looking for, our support team is here to
+          help. You can reach us via:
         </p>
         <ul className="list-disc list-inside space-y-2 text-slate-300">
-          <li>Email: <a href="mailto:hello@campusconnect.gh" className="text-indigo-400 hover:underline">hello@campusconnect.gh</a></li>
-          <li>WhatsApp: <a href="https://wa.me/233546945944" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:underline">+233 546 945 944</a></li>
-          <li>Or visit our <Link to="/support" className="text-indigo-400 hover:underline">Customer Support page</Link>.</li>
+          <li>
+            Email:{" "}
+            <a
+              href="mailto:hello@campusconnect.gh"
+              className="text-indigo-400 hover:underline"
+            >
+              hello@campusconnect.gh
+            </a>
+          </li>
+          <li>
+            WhatsApp:{" "}
+            <a
+              href="https://wa.me/233546945944"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-400 hover:underline"
+            >
+              +233 546 945 944
+            </a>
+          </li>
+          <li>
+            Or visit our{" "}
+            <Link to="/support" className="text-indigo-400 hover:underline">
+              Customer Support page
+            </Link>
+            .
+          </li>
         </ul>
       </section>
     </div>
@@ -69,7 +116,9 @@ function FAQTab() {
     }
     setSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       const { error } = await supabase.from("faq_questions").insert({
         asker_id: user?.id || null,
         question: question.trim(),
@@ -77,7 +126,9 @@ function FAQTab() {
 
       if (error) throw error;
 
-      toast.success("Your question has been submitted! We'll get back to you soon.");
+      toast.success(
+        "Your question has been submitted! We'll get back to you soon.",
+      );
       setQuestion("");
     } catch (error) {
       toast.error(error.message || "Failed to submit question.");
@@ -89,13 +140,17 @@ function FAQTab() {
   return (
     <div className="space-y-6">
       <section>
-        <h2 className="text-xl font-bold text-white mb-3">Frequently Asked Questions</h2>
+        <h2 className="text-xl font-bold text-white mb-3">
+          Frequently Asked Questions
+        </h2>
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
           </div>
         ) : faqs.length === 0 ? (
-          <p className="text-slate-400">No FAQs available yet. Ask a question below!</p>
+          <p className="text-slate-400">
+            No FAQs available yet. Ask a question below!
+          </p>
         ) : (
           <div className="space-y-4">
             {faqs.map((faq) => (
@@ -115,7 +170,10 @@ function FAQTab() {
 
       <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
         <h2 className="text-xl font-bold text-white">Have a question?</h2>
-        <p className="text-slate-400">Can't find the answer you're looking for? Submit your question and we'll get back to you.</p>
+        <p className="text-slate-400">
+          Can't find the answer you're looking for? Submit your question and
+          we'll get back to you.
+        </p>
         <form onSubmit={handleSubmitQuestion} className="space-y-4">
           <textarea
             value={question}
@@ -144,7 +202,8 @@ function FAQTab() {
 
 export default function NeedHelp() {
   const location = useLocation();
-  const isInformationActive = location.pathname === "/help" || location.pathname === "/help/information";
+  const isInformationActive =
+    location.pathname === "/help" || location.pathname === "/help/information";
 
   return (
     <div className="max-w-5xl mx-auto px-4">

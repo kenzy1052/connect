@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { MessageCircle, Send, Phone, Mail, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
-
+import { useToast } from "../context/ToastContext";
 const SUPPORT_PHONE = "0546 945 944";
 const SUPPORT_PHONE_INTL = "233546945944"; // E.164 without "+"
 const BUSINESS_EMAIL = "hello@campusconnect.com";
 
 export default function CustomerSupport() {
+  const toast = useToast();
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
@@ -39,19 +39,24 @@ export default function CustomerSupport() {
   return (
     <div className="max-w-4xl mx-auto py-8">
       <header className="mb-8">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">Support</p>
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-faint">
+          Support
+        </p>
         <h1 className="mt-1 text-2xl md:text-3xl font-bold text-main tracking-tight">
           We're here to help
         </h1>
         <p className="mt-2 text-sm text-muted max-w-xl">
-          Send us a message and we'll continue the conversation on WhatsApp. Most messages are
-          answered within a few hours.
+          Send us a message and we'll continue the conversation on WhatsApp.
+          Most messages are answered within a few hours.
         </p>
       </header>
 
       <div className="grid md:grid-cols-[1fr_320px] gap-6">
         {/* Form */}
-        <form onSubmit={submit} className="bg-surface border border-app rounded-md p-6 md:p-8 space-y-5" >
+        <form
+          onSubmit={submit}
+          className="bg-surface border border-app rounded-md p-6 md:p-8 space-y-5"
+        >
           <Field label="Your name" htmlFor="cs-name">
             <input
               id="cs-name"
@@ -90,11 +95,20 @@ export default function CustomerSupport() {
           </Field>
 
           <p className="text-[11px] text-faint">
-            By submitting, you'll be redirected to WhatsApp with your message ready to send.
+            By submitting, you'll be redirected to WhatsApp with your message
+            ready to send.
           </p>
 
-          <button type="submit" disabled={busy} className="inline-flex items-center justify-center gap-2 gradient-brand text-[hsl(var(--primary-fg))] h-11 px-5 rounded-md font-semibold text-sm shadow-[0_4px_18px_hsl(var(--primary)/0.35)] disabled:opacity-60" >
-            {busy ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          <button
+            type="submit"
+            disabled={busy}
+            className="inline-flex items-center justify-center gap-2 gradient-brand text-[hsl(var(--primary-fg))] h-11 px-5 rounded-md font-semibold text-sm shadow-[0_4px_18px_hsl(var(--primary)/0.35)] disabled:opacity-60"
+          >
+            {busy ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Send size={16} />
+            )}
             Send via WhatsApp
           </button>
         </form>
@@ -150,13 +164,20 @@ function Field({ label, htmlFor, children }) {
 
 function ContactCard({ href, icon, title, value, accent }) {
   return (
-    <a href={href} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noreferrer" : undefined} className={`block bg-surface border border-app rounded-md p-4 transition-colors hover:border-[hsl(var(--primary))] ${ accent ? "ring-1 ring-[hsl(var(--primary)/0.2)]" : "" }`} >
+    <a
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel={href.startsWith("http") ? "noreferrer" : undefined}
+      className={`block bg-surface border border-app rounded-md p-4 transition-colors hover:border-[hsl(var(--primary))] ${accent ? "ring-1 ring-[hsl(var(--primary)/0.2)]" : ""}`}
+    >
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 grid place-items-center rounded-md bg-brand-soft text-brand">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-widest text-faint">{title}</p>
+          <p className="text-[10px] uppercase tracking-widest text-faint">
+            {title}
+          </p>
           <p className="text-sm font-medium text-main truncate">{value}</p>
         </div>
       </div>

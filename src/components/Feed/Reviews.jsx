@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 import { Star, MessageSquare, AlertCircle, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
-
+import { useToast } from "../../context/ToastContext";
 export default function Reviews({ sellerId, listingId, canReview }) {
+  const toast = useToast();
   const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);

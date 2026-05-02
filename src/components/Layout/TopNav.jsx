@@ -313,7 +313,6 @@ export default function TopNav({ onOpenFilters }) {
               className="h-9 px-3.5 shrink-0 inline-flex items-center gap-1.5 rounded-md gradient-brand text-[hsl(var(--primary-fg))] text-xs font-semibold transition-opacity hover:opacity-90 active:scale-95"
             >
               <Search size={14} />
-              Search
             </button>
           </form>
         </div>
