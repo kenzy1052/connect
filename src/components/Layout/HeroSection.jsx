@@ -71,7 +71,6 @@ export default function HeroSection() {
         pointerY.set(0);
       }}
       className="relative isolate w-full overflow-hidden bg-app"
-      style={{ minHeight: "100svh" }}
     >
       {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -95,16 +94,10 @@ export default function HeroSection() {
       </div>
 
       <div
-        className="mx-auto grid h-full max-w-7xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12"
+        className="mx-auto grid h-full max-w-7xl items-start lg:items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:min-h-[calc(100svh-64px)]"
         style={{
-          /*
-           * Desktop: clamp collapses the top/bottom padding so the content
-           * sits closer to the navbar — no more oversized white gap.
-           * Mobile: stays tight too.
-           */
-          paddingTop: "clamp(0.75rem, 3svh, 1.5rem)",
-          paddingBottom: "clamp(0.75rem, 3svh, 1.5rem)",
-          minHeight: "100svh",
+          paddingTop: "clamp(1.75rem, 5svh, 3rem)",
+          paddingBottom: "clamp(1.75rem, 4svh, 2.5rem)",
         }}
       >
         {/* ── LEFT — text & search ── */}

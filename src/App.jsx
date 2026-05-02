@@ -11,10 +11,12 @@ export default function App() {
           position="top-center"
           reverseOrder={false}
           toastOptions={{
+            duration: 5000,
             style: {
               background: "hsl(var(--surface))",
               color: "hsl(var(--text))",
               border: "1px solid hsl(var(--border))",
+              maxWidth: "90vw",
             },
           }}
         />

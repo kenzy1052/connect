@@ -322,39 +322,123 @@ export function PrimaryButton({ loading, children, ...props }) {
 }
 
 // ── Error Banner ──────────────────────────────────────────────────────────────
-export function ErrorBanner({ message }) {
-  if (!message) return null;
+export function ErrorBanner({ message, onDismiss }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setVisible(true); // reset when message changes
+  }, [message]);
+
+  if (!message || !visible) return null;
+
+  const dismiss = () => {
+    setVisible(false);
+    onDismiss?.();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="px-4 py-3 rounded-xl text-sm font-medium"
+      exit={{ opacity: 0, y: -4 }}
+      className="rounded-xl text-sm font-medium overflow-hidden"
       style={{
         background: "hsl(var(--danger) / 0.1)",
         border: "1px solid hsl(var(--danger) / 0.28)",
         color: "hsl(var(--danger))",
       }}
     >
-      {message}
+      {/* Message row */}
+      <div className="flex items-start gap-3 px-4 pt-3 pb-2">
+        {/* Danger icon */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="w-4 h-4 shrink-0 mt-0.5"
+        >
+          <path
+            fillRule="evenodd"
+            d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <span className="flex-1">{message}</span>
+      </div>
+      {/* Dismiss button */}
+      <div className="px-4 pb-3 flex justify-end">
+        <button
+          type="button"
+          onClick={dismiss}
+          className="text-[11px] font-bold px-3 py-1 rounded-lg transition-colors"
+          style={{
+            background: "hsl(var(--danger) / 0.15)",
+            color: "hsl(var(--danger))",
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
     </motion.div>
   );
 }
 
 // ── Success Banner ────────────────────────────────────────────────────────────
-export function SuccessBanner({ message }) {
-  if (!message) return null;
+export function SuccessBanner({ message, onDismiss }) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    setVisible(true);
+  }, [message]);
+
+  if (!message || !visible) return null;
+
+  const dismiss = () => {
+    setVisible(false);
+    onDismiss?.();
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="px-4 py-3 rounded-xl text-sm font-medium"
+      exit={{ opacity: 0, y: -4 }}
+      className="rounded-xl text-sm font-medium overflow-hidden"
       style={{
         background: "hsl(var(--success) / 0.1)",
         border: "1px solid hsl(var(--success) / 0.28)",
         color: "hsl(var(--success))",
       }}
     >
-      {message}
+      <div className="flex items-start gap-3 px-4 pt-3 pb-2">
+        {/* Check icon */}
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          className="w-4 h-4 shrink-0 mt-0.5"
+        >
+          <path
+            fillRule="evenodd"
+            d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <span className="flex-1">{message}</span>
+      </div>
+      <div className="px-4 pb-3 flex justify-end">
+        <button
+          type="button"
+          onClick={dismiss}
+          className="text-[11px] font-bold px-3 py-1 rounded-lg transition-colors"
+          style={{
+            background: "hsl(var(--success) / 0.15)",
+            color: "hsl(var(--success))",
+          }}
+        >
+          Dismiss
+        </button>
+      </div>
     </motion.div>
   );
 }

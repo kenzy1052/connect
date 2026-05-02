@@ -10,7 +10,6 @@ import {
   Compass,
   Sun,
   Moon,
-  SlidersHorizontal,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { useTheme } from "../../context/ThemeContext";
@@ -288,31 +287,35 @@ export default function TopNav({ onOpenFilters }) {
           </div>
         </div>
 
-        {/* Row 2: search bar + filter button */}
+        {/* Row 2: search bar + search button */}
         <div className="flex items-center gap-2 px-4 pb-3">
-          <form onSubmit={submitSearch} className="flex-1 relative">
-            <Search
-              size={15}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search listings…"
-              className="w-full bg-surface-2 border border-app focus:border-[hsl(var(--primary))]
-                         text-sm text-main placeholder:text-faint
-                         rounded-md pl-9 pr-3 h-9 outline-none transition-colors"
-            />
-          </form>
-
-          <button
-            type="button"
-            onClick={onOpenFilters}
-            aria-label="Open filters"
-            className={`h-9 w-9 shrink-0 grid place-items-center rounded-md border border-app bg-surface-2 cursor-pointer ${hoverBtn}`}
+          <form
+            onSubmit={submitSearch}
+            className="flex-1 flex items-center gap-2 relative"
           >
-            <SlidersHorizontal size={16} />
-          </button>
+            <div className="flex-1 relative">
+              <Search
+                size={15}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search listings…"
+                className="w-full bg-surface-2 border border-app focus:border-[hsl(var(--primary))]
+                           text-sm text-main placeholder:text-faint
+                           rounded-md pl-9 pr-3 h-9 outline-none transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              aria-label="Search"
+              className="h-9 px-3.5 shrink-0 inline-flex items-center gap-1.5 rounded-md gradient-brand text-[hsl(var(--primary-fg))] text-xs font-semibold transition-opacity hover:opacity-90 active:scale-95"
+            >
+              <Search size={14} />
+              Search
+            </button>
+          </form>
         </div>
       </header>
     </>

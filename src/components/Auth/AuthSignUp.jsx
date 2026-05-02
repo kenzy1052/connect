@@ -132,6 +132,14 @@ export default function AuthSignUp() {
         throw authError;
       }
 
+      // Supabase silently "succeeds" for duplicate emails when confirmation is ON
+      // — it returns a user with an empty identities array instead of an error.
+      if (data?.user && (data.user.identities?.length ?? 0) === 0) {
+        throw new Error(
+          "An account with this email already exists. Please sign in instead.",
+        );
+      }
+
       // Supabase returns a session if email confirmation is disabled,
       // or null session if confirmation is required.
       if (data?.session) {

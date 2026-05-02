@@ -45,7 +45,12 @@ export default function MainApp() {
     categories,
   } = useDiscoveryFeed();
 
-  const observerTarget = useRef(null);
+  const [dismissedError, setDismissedError] = useState(false);
+
+  // Reset dismiss when error message changes
+  useEffect(() => {
+    setDismissedError(false);
+  }, [error]);
 
   // Read ?category= from URL and pre-populate the category filter
   useEffect(() => {
@@ -57,8 +62,10 @@ export default function MainApp() {
       // Clear category when navigating away from a category URL
       setCategoryId("");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+
+  const observerTarget = useRef(null);
 
   useEffect(() => {
     const el = observerTarget.current;
@@ -116,32 +123,68 @@ export default function MainApp() {
             />
           )}
 
-          {error && (
-            <div className="p-4 bg-[hsl(var(--danger)/0.1)] border border-[hsl(var(--danger)/0.3)] rounded-md text-[hsl(var(--danger))] text-xs mb-6">
-              {error}
+          {error && !dismissedError && (
+            <div
+              className="mb-6 rounded-md overflow-hidden"
+              style={{
+                background: "hsl(var(--danger)/0.1)",
+                border: "1px solid hsl(var(--danger)/0.3)",
+              }}
+            >
+              <div className="flex items-start gap-3 px-4 pt-3 pb-2">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-4 h-4 shrink-0 mt-0.5"
+                  style={{ color: "hsl(var(--danger))" }}
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span
+                  className="flex-1 text-xs"
+                  style={{ color: "hsl(var(--danger))" }}
+                >
+                  {error}
+                </span>
+              </div>
+              <div className="px-4 pb-3 flex justify-end">
+                <button
+                  onClick={() => setDismissedError(true)}
+                  className="text-[11px] font-bold px-3 py-1 rounded-lg transition-colors"
+                  style={{
+                    background: "hsl(var(--danger)/0.15)",
+                    color: "hsl(var(--danger))",
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
 
-          
-            <div key={location.pathname + location.search} >
-              <Outlet
-                context={{
-                  user,
-                  isAdmin,
-                  listings: visibleListings,
-                  fullListings: listings,
-                  loading,
-                  isInitialLoading,
-                  hasMore: isBrowse ? hasMore : false,
-                  observerTarget,
-                  openDetailView,
-                  refetch,
-                  isHome,
-                  isBrowse,
-                }}
-              />
-            </div>
-          
+          <div key={location.pathname + location.search}>
+            <Outlet
+              context={{
+                user,
+                isAdmin,
+                listings: visibleListings,
+                fullListings: listings,
+                loading,
+                isInitialLoading,
+                hasMore: isBrowse ? hasMore : false,
+                observerTarget,
+                openDetailView,
+                refetch,
+                isHome,
+                isBrowse,
+              }}
+            />
+          </div>
         </div>
       </main>
 

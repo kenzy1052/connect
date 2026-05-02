@@ -20,7 +20,12 @@ export default function Reviews({ sellerId, listingId, canReview }) {
     setLoading(true);
     const { data, error } = await supabase
       .from("reviews")
-      .select("*")
+      .select(
+        `
+        id, listing_id, seller_id, reviewer_id, rating, body, created_at,
+        reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)
+      `,
+      )
       .eq("seller_id", sellerId)
       .order("created_at", { ascending: false });
 
@@ -43,7 +48,7 @@ export default function Reviews({ sellerId, listingId, canReview }) {
       seller_id: sellerId,
       reviewer_id: user.id,
       rating,
-      comment: comment.trim() || null,
+      body: comment.trim() || null,
     });
 
     if (error) {
@@ -81,7 +86,10 @@ export default function Reviews({ sellerId, listingId, canReview }) {
       </div>
 
       {canReview && (
-        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4"
+        >
           <p className="text-sm font-bold text-white">Rate your experience</p>
           <div className="flex gap-2">
             {[1, 2, 3, 4, 5].map((num) => (
@@ -90,10 +98,15 @@ export default function Reviews({ sellerId, listingId, canReview }) {
                 type="button"
                 onClick={() => setRating(num)}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
-                  rating >= num ? "bg-yellow-500/20 text-yellow-400" : "bg-slate-800 text-slate-500"
+                  rating >= num
+                    ? "bg-yellow-500/20 text-yellow-400"
+                    : "bg-slate-800 text-slate-500"
                 }`}
               >
-                <Star className="w-5 h-5" fill={rating >= num ? "currentColor" : "none"} />
+                <Star
+                  className="w-5 h-5"
+                  fill={rating >= num ? "currentColor" : "none"}
+                />
               </button>
             ))}
           </div>
@@ -116,22 +129,35 @@ export default function Reviews({ sellerId, listingId, canReview }) {
       <div className="space-y-4">
         {reviews.length === 0 ? (
           <div className="text-center py-12 bg-slate-900/50 border border-dashed border-slate-800 rounded-2xl">
-            <p className="text-slate-500 text-sm">No reviews yet for this seller.</p>
+            <p className="text-slate-500 text-sm">
+              No reviews yet for this seller.
+            </p>
           </div>
         ) : (
           reviews.map((review) => (
-            <div key={review.id} className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5">
+            <div
+              key={review.id}
+              className="bg-slate-900/50 border border-slate-800 rounded-2xl p-5"
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
-                    {review.reviewer_avatar_url ? (
-                      <img src={review.reviewer_avatar_url} alt="" className="w-full h-full object-cover rounded-full" />
+                    {review.reviewer?.avatar_url ? (
+                      <img
+                        src={review.reviewer.avatar_url}
+                        alt=""
+                        className="w-full h-full object-cover rounded-full"
+                      />
                     ) : (
-                      <span>{(review.reviewer_name || "?")[0]?.toUpperCase()}</span>
+                      <span>
+                        {(review.reviewer?.full_name || "?")[0]?.toUpperCase()}
+                      </span>
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-white">{review.reviewer_name || "Student"}</p>
+                    <p className="text-sm font-bold text-white">
+                      {review.reviewer?.full_name || "Student"}
+                    </p>
                     <div className="flex items-center gap-1 mt-0.5">
                       {[...Array(5)].map((_, i) => (
                         <Star
@@ -146,9 +172,9 @@ export default function Reviews({ sellerId, listingId, canReview }) {
                   {new Date(review.created_at).toLocaleDateString()}
                 </span>
               </div>
-              {review.comment && (
+              {review.body && (
                 <p className="mt-3 text-sm text-slate-400 leading-relaxed">
-                  {review.comment}
+                  {review.body}
                 </p>
               )}
             </div>
