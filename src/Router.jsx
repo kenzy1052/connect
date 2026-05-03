@@ -77,6 +77,7 @@ const FAQTab = lazy(() =>
 );
 const Safety = lazy(() => import("./pages/Safety"));
 const CustomerSupport = lazy(() => import("./pages/CustomerSupport"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 
 function LoadingScreen() {
   return (
@@ -343,6 +344,7 @@ export default function AppRouter() {
             </Route>
             <Route path="support" element={<CustomerSupport />} />
             <Route path="safety" element={<Safety />} />
+            <Route path="refund-policy" element={<RefundPolicy />} />
 
             <Route element={<RequireAuth />}>
               <Route path="create" element={<CreateRoute />} />

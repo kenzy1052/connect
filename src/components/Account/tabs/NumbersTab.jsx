@@ -25,7 +25,6 @@ const normalizePhone = (num) => {
 const formatPhoneForDisplay = (num) => (num ? "0" + num : "");
 
 function PhoneInput({ value, onChange, placeholder, icon: Icon }) {
-  const toast = useToast();
   const handleChange = (raw) => {
     let digits = raw.replace(/\D/g, "");
     digits = digits.startsWith("0") ? digits.slice(0, 10) : digits.slice(0, 9);
@@ -54,12 +53,8 @@ function Field({ label, hint, required, children }) {
     <div className="space-y-1.5">
       <label className="text-xs font-medium text-muted flex items-center gap-1">
         {label}
-        {required && (
-          <span className="text-[hsl(var(--danger))] text-xs">*</span>
-        )}
-        {!required && (
-          <span className="text-faint text-[10px] font-normal">(optional)</span>
-        )}
+        {required && <span className="text-[hsl(var(--danger))] text-xs">*</span>}
+        {!required && <span className="text-faint text-[10px] font-normal">(optional)</span>}
       </label>
       {children}
       {hint && <p className="text-[11px] text-faint">{hint}</p>}
@@ -69,6 +64,7 @@ function Field({ label, hint, required, children }) {
 
 export default function NumbersTab() {
   const { user } = useAuth();
+  const toast = useToast();
   const [whatsapp, setWhatsapp] = useState("");
   const [primaryPhone, setPrimaryPhone] = useState("");
   const [secondaryPhone, setSecondaryPhone] = useState("");
@@ -86,37 +82,38 @@ export default function NumbersTab() {
     const secondary = data.find((c) => c.type === "phone" && !c.is_primary);
     if (wa) setWhatsapp(formatPhoneForDisplay(wa.phone_number));
     if (primary) setPrimaryPhone(formatPhoneForDisplay(primary.phone_number));
-    if (secondary)
-      setSecondaryPhone(formatPhoneForDisplay(secondary.phone_number));
+    if (secondary) setSecondaryPhone(formatPhoneForDisplay(secondary.phone_number));
   }, [user]);
 
   useEffect(() => {
     fetchContacts();
   }, [fetchContacts]);
 
+  // Returns true on success, throws on failure
   const upsertContact = async (existing, type, isPrimary, value) => {
     const trimmed = value.trim();
     if (!trimmed) {
-      if (existing)
-        await supabase.from("contact_numbers").delete().eq("id", existing.id);
+      if (existing) {
+        const { error } = await supabase.from("contact_numbers").delete().eq("id", existing.id);
+        if (error) throw new Error(`Failed to remove ${type} number: ${error.message}`);
+      }
       return;
     }
     const normalized = normalizePhone(trimmed);
     if (existing) {
-      await supabase
+      const { error } = await supabase
         .from("contact_numbers")
-        .update({
-          phone_number: normalized,
-          is_primary: isPrimary ?? existing.is_primary,
-        })
+        .update({ phone_number: normalized, is_primary: isPrimary ?? existing.is_primary })
         .eq("id", existing.id);
+      if (error) throw new Error(`Failed to update ${type} number: ${error.message}`);
     } else {
-      await supabase.from("contact_numbers").insert({
+      const { error } = await supabase.from("contact_numbers").insert({
         user_id: user.id,
         type,
         phone_number: normalized,
         is_primary: isPrimary,
       });
+      if (error) throw new Error(`Failed to save ${type} number: ${error.message}`);
     }
   };
 
@@ -124,34 +121,36 @@ export default function NumbersTab() {
     e.preventDefault();
     if (!user) return;
 
-    if (!whatsapp.trim()) {
-      return toast.error("WhatsApp number is required.");
-    }
-    if (!primaryPhone.trim()) {
-      return toast.error("Primary phone number is required.");
-    }
-    if (!validatePhone(whatsapp))
-      return toast.error("WhatsApp number is invalid.");
-    if (!validatePhone(primaryPhone))
-      return toast.error("Primary phone number is invalid.");
+    if (!whatsapp.trim()) return toast.error("WhatsApp number is required.");
+    if (!primaryPhone.trim()) return toast.error("Primary phone number is required.");
+    if (!validatePhone(whatsapp)) return toast.error("WhatsApp number is invalid.");
+    if (!validatePhone(primaryPhone)) return toast.error("Primary phone number is invalid.");
     if (secondaryPhone && !validatePhone(secondaryPhone))
       return toast.error("Secondary phone number is invalid.");
 
     setSaving(true);
     try {
-      const { data: existing } = await supabase
+      const { data: existing, error: fetchErr } = await supabase
         .from("contact_numbers")
         .select("*")
         .eq("user_id", user.id);
+
+      if (fetchErr) throw new Error(fetchErr.message);
+
       const find = (type, ip = false) =>
         existing?.find((c) => c.type === type && c.is_primary === ip);
+
       await upsertContact(find("whatsapp"), "whatsapp", false, whatsapp);
       await upsertContact(find("phone", true), "phone", true, primaryPhone);
       await upsertContact(find("phone", false), "phone", false, secondaryPhone);
-      toast.success("Contact information saved.");
+
+      toast.success("Contact information saved successfully!");
       fetchContacts();
+
+      // Clear the "came from create listing" flag so the user can go back
+      sessionStorage.removeItem("cc.create.returnFromNumbers");
     } catch (err) {
-      toast.error(err.message || "Failed to save contact information.");
+      toast.error(err.message || "Failed to save contact information. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -171,11 +170,7 @@ export default function NumbersTab() {
           description="Buyers can message you instantly via WhatsApp."
           icon={MessageCircle}
         >
-          <Field
-            label="WhatsApp Number"
-            required
-            hint="Required — buyers will use this to chat with you."
-          >
+          <Field label="WhatsApp Number" required hint="Required — buyers will use this to chat with you.">
             <PhoneInput
               value={whatsapp}
               onChange={setWhatsapp}
@@ -190,11 +185,7 @@ export default function NumbersTab() {
           description="Voice and SMS contact numbers."
           icon={Phone}
         >
-          <Field
-            label="Primary Phone Number"
-            required
-            hint="Required — shown first on your listings."
-          >
+          <Field label="Primary Phone Number" required hint="Required — shown first on your listings.">
             <PhoneInput
               value={primaryPhone}
               onChange={setPrimaryPhone}
@@ -202,11 +193,7 @@ export default function NumbersTab() {
               icon={Phone}
             />
           </Field>
-          <Field
-            label="Secondary Phone Number"
-            required={false}
-            hint="A backup number for buyers to reach you."
-          >
+          <Field label="Secondary Phone Number" required={false} hint="A backup number for buyers to reach you.">
             <PhoneInput
               value={secondaryPhone}
               onChange={setSecondaryPhone}
@@ -222,11 +209,7 @@ export default function NumbersTab() {
             disabled={saving}
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-brand text-[hsl(var(--primary-fg))] text-sm font-semibold disabled:opacity-50 transition-transform active:scale-[0.98] hover:brightness-110"
           >
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4" />
-            )}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             {saving ? "Saving…" : "Save changes"}
           </button>
         </div>

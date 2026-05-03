@@ -140,28 +140,57 @@ function ImagePreview({ files, coverIndex, setCoverIndex, onRemove }) {
 /* ─── Main ─────────────────────────────────────────────────────────── */
 export function CreateListing({ user, onCancel, onSuccess }) {
   const navigate = useNavigate();
+  const toast = useToast();
   const MAX_IMAGES = 3;
 
-  const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    listing_type: "product",
-    price: "",
-    price_min: "",
-    price_max: "",
-    category_id: "",
-    condition: "",
-    negotiable: false,
-  });
+  // ── Restore form state if returning from /account/numbers ──────────────────
+  const DRAFT_KEY = "cc.create.draft";
+  const savedDraft = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(DRAFT_KEY));
+    } catch {
+      return null;
+    }
+  })();
 
-  const [images, setImages] = useState([]);
-  const [coverIndex, setCoverIndex] = useState(0);
+  const [formData, setFormData] = useState(
+    savedDraft?.formData ?? {
+      title: "",
+      description: "",
+      listing_type: "product",
+      price: "",
+      price_min: "",
+      price_max: "",
+      category_id: "",
+      condition: "",
+      negotiable: false,
+    },
+  );
+
+  const [images, setImages] = useState([]); // File objects can't be stored in sessionStorage; restored separately
+  const [coverIndex, setCoverIndex] = useState(savedDraft?.coverIndex ?? 0);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [contactGate, setContactGate] = useState(false);
 
-  const [pendingCrop, setPendingCrop] = useState(null);
+  // ── Persist formData to sessionStorage whenever it changes ─────────────────
+  useEffect(() => {
+    try {
+      const draft = sessionStorage.getItem(DRAFT_KEY);
+      const existing = draft ? JSON.parse(draft) : {};
+      sessionStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ ...existing, formData, coverIndex }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [formData, coverIndex]);
+
+  // ── Crop queue: array of { file, previewUrl } ───────────────────────────────
+  const [cropQueue, setCropQueue] = useState([]); // files waiting to be cropped
+  const pendingCrop = cropQueue[0] ?? null; // currently shown in cropper
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -200,18 +229,29 @@ export function CreateListing({ user, onCancel, onSuccess }) {
     const incoming = Array.from(e.target.files);
     e.target.value = "";
     if (!incoming.length) return;
-    const remaining = MAX_IMAGES - images.length;
+    // Account for items already in the crop queue when checking remaining slots
+    const remaining = MAX_IMAGES - images.length - cropQueue.length;
     if (remaining <= 0) return toast.error(`Maximum ${MAX_IMAGES} photos.`);
     const accepted = incoming.slice(0, remaining);
     if (incoming.length > remaining)
-      toast.error(`Only ${remaining} more allowed.`);
+      toast.error(
+        `Only ${remaining} more photo${remaining > 1 ? "s" : ""} allowed.`,
+      );
+
+    // Queue ALL accepted files so they're cropped one-by-one
+    const newEntries = [];
     for (const f of accepted) {
       if (f.size > 15 * 1024 * 1024) {
-        toast.error(`"${f.name}" is over 15 MB.`);
+        toast.error(`"${f.name}" is over 15 MB — skipped.`);
         continue;
       }
-      setPendingCrop({ file: f, previewUrl: URL.createObjectURL(f) });
-      return;
+      newEntries.push({ file: f, previewUrl: URL.createObjectURL(f) });
+    }
+    if (newEntries.length > 0) {
+      setCropQueue((prev) => [...prev, ...newEntries]);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setCroppedAreaPixels(null);
     }
   };
 
@@ -235,8 +275,9 @@ export function CreateListing({ user, onCancel, onSuccess }) {
       console.error(err);
       toast.error("Could not crop image.");
     } finally {
+      // Revoke the processed item's URL and advance the queue
       URL.revokeObjectURL(pendingCrop.previewUrl);
-      setPendingCrop(null);
+      setCropQueue((prev) => prev.slice(1)); // remove first item → next auto-shows
       setCrop({ x: 0, y: 0 });
       setZoom(1);
       setCroppedAreaPixels(null);
@@ -244,9 +285,12 @@ export function CreateListing({ user, onCancel, onSuccess }) {
   };
 
   const cancelCrop = () => {
-    if (pendingCrop?.previewUrl) URL.revokeObjectURL(pendingCrop.previewUrl);
-    setPendingCrop(null);
+    // Cancel current item and clear the rest of the queue
+    cropQueue.forEach((item) => URL.revokeObjectURL(item.previewUrl));
+    setCropQueue([]);
     setCroppedAreaPixels(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
   };
 
   const removeImage = (index) => {
@@ -379,6 +423,10 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         .eq("id", listing.id);
       if (activateError)
         throw new Error("Activation failed: " + activateError.message);
+      // Clear the saved draft on successful publish
+      try {
+        sessionStorage.removeItem("cc.create.draft");
+      } catch {}
       onSuccess();
     } catch (err) {
       console.error("CREATE LISTING ERROR:", err);
@@ -431,7 +479,13 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         {contactGate && (
           <div id="contact-gate-banner">
             <ContactGateBanner
-              onGoToSettings={() => navigate("/account/numbers")}
+              onGoToSettings={() => {
+                // Flag that we're returning from numbers so NumbersTab knows
+                try {
+                  sessionStorage.setItem("cc.create.returnFromNumbers", "1");
+                } catch {}
+                navigate("/account/numbers");
+              }}
               onDismiss={() => setContactGate(false)}
             />
           </div>
@@ -648,7 +702,7 @@ export function CreateListing({ user, onCancel, onSuccess }) {
           <ProTip>
             {formData.listing_type === "product"
               ? "Research similar listings. Competitive pricing → 3× faster responses."
-              : "A clear price range filters time-wasters and attracts serious clients."}
+              : "If there is no price range, you can leave this section blank. It will prompt users to caontact for price."}
           </ProTip>
         </FormSection>
 

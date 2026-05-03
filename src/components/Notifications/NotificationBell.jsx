@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, MessageSquare, Heart, ShieldAlert, FileText, Megaphone } from "lucide-react";
+import {
+  Bell,
+  MessageSquare,
+  Heart,
+  ShieldAlert,
+  FileText,
+  Megaphone,
+} from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 
@@ -15,11 +22,11 @@ import { useAuth } from "../../context/AuthContext";
  */
 
 const TYPE_META = {
-  faq:     { Icon: MessageSquare, color: "text-brand"  },
-  saved:   { Icon: Heart,         color: "text-rose-500" },
-  report:  { Icon: ShieldAlert,   color: "text-amber-400" },
-  admin:   { Icon: Megaphone,     color: "text-[hsl(var(--accent))]" },
-  default: { Icon: FileText,      color: "text-muted" },
+  faq: { Icon: MessageSquare, color: "text-brand" },
+  saved: { Icon: Heart, color: "text-rose-500" },
+  report: { Icon: ShieldAlert, color: "text-amber-400" },
+  admin: { Icon: Megaphone, color: "text-[hsl(var(--accent))]" },
+  default: { Icon: FileText, color: "text-muted" },
 };
 
 function timeAgo(d) {
@@ -44,7 +51,8 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!open) return;
     const onClick = (e) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+      if (wrapRef.current && !wrapRef.current.contains(e.target))
+        setOpen(false);
     };
     window.addEventListener("mousedown", onClick);
     return () => window.removeEventListener("mousedown", onClick);
@@ -70,8 +78,12 @@ export default function NotificationBell() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchItems(); /* eslint-disable-next-line */ }, [user]);
-  useEffect(() => { if (open) fetchItems(); /* eslint-disable-next-line */ }, [open]);
+  useEffect(() => {
+    fetchItems(); /* eslint-disable-next-line */
+  }, [user]);
+  useEffect(() => {
+    if (open) fetchItems(); /* eslint-disable-next-line */
+  }, [open]);
 
   const unread = items.filter((i) => !i.is_read).length;
   const adminBadge = isAdmin ? unread : 0;
@@ -80,15 +92,25 @@ export default function NotificationBell() {
     setOpen(false);
     if (!n.is_read) {
       // Optimistic
-      setItems((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
-      supabase.from("notifications").update({ is_read: true }).eq("id", n.id).then(() => {});
+      setItems((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)),
+      );
+      supabase
+        .from("notifications")
+        .update({ is_read: true })
+        .eq("id", n.id)
+        .then(() => {});
     }
     if (n.link) navigate(n.link);
   };
 
   const markAllRead = async () => {
     setItems((prev) => prev.map((x) => ({ ...x, is_read: true })));
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", user.id).eq("is_read", false);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
   };
 
   return (
@@ -96,7 +118,9 @@ export default function NotificationBell() {
       <button
         onClick={() => setOpen((o) => !o)}
         className={`relative h-10 w-10 grid place-items-center rounded-md transition-colors ${
-          open ? "bg-surface-2 text-main" : "text-muted hover:text-main hover:bg-surface-2"
+          open
+            ? "bg-surface-2 text-main"
+            : "text-muted hover:text-main hover:bg-surface-2"
         }`}
         aria-label="Notifications"
         aria-expanded={open}
@@ -109,95 +133,112 @@ export default function NotificationBell() {
         )}
       </button>
 
-      
-        {open && (
-          <div className="absolute right-0 top-12 z-[190] w-[22rem] max-w-[92vw] bg-surface border border-app rounded-md shadow-2xl overflow-hidden" >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-app">
-              <p className="text-sm font-semibold text-main">Notifications</p>
-              {unread > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-[11px] font-semibold text-brand hover:underline"
-                >
-                  Mark all read
-                </button>
-              )}
-            </div>
-
-            <div className="max-h-[60vh] overflow-y-auto">
-              {loading && items.length === 0 && (
-                <div className="px-4 py-8 text-center text-xs text-faint">Loading…</div>
-              )}
-
-              {!loading && items.length === 0 && (
-                <div className="px-4 py-10 text-center">
-                  <Bell size={20} className="mx-auto mb-2 text-faint" />
-                  <p className="text-sm font-medium text-main">You're all caught up</p>
-                  <p className="text-xs text-muted mt-1">
-                    Notifications about your listings, reports and replies appear here.
-                  </p>
-                </div>
-              )}
-
-              <ul>
-                {items.map((n) => {
-                  const meta = TYPE_META[n.type] || TYPE_META.default;
-                  const Icon = meta.Icon;
-                  return (
-                    <li key={n.id}>
-                      <button
-                        onClick={() => handleItemClick(n)}
-                        className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-surface-2 transition-colors border-b border-app last:border-0 ${
-                          !n.is_read ? "bg-[hsl(var(--primary)/0.04)]" : ""
-                        }`}
-                      >
-                        <span className={`shrink-0 w-8 h-8 rounded-md grid place-items-center bg-surface-2 ${meta.color}`}>
-                          <Icon size={15} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-start justify-between gap-2">
-                            <span className="text-sm font-medium text-main truncate">{n.title}</span>
-                            {!n.is_read && (
-                              <span className="mt-1 shrink-0 w-1.5 h-1.5 rounded-full bg-brand" />
-                            )}
-                          </span>
-                          {n.body && (
-                            <span className="block text-xs text-muted line-clamp-2 mt-0.5">
-                              {n.body}
-                            </span>
-                          )}
-                          <span className="block text-[10px] text-faint mt-1 uppercase tracking-wider">
-                            {timeAgo(n.created_at)}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            <div className="px-4 py-2.5 border-t border-app bg-surface-2/40 flex items-center justify-between">
-              <Link
-                to="/account/notifications"
-                onClick={() => setOpen(false)}
-                className="text-[12px] font-semibold text-brand hover:underline"
+      {open && (
+        <div
+          className="bg-surface border border-app rounded-md shadow-2xl overflow-hidden"
+          style={{
+            position: window.innerWidth <= 480 ? "fixed" : "absolute",
+            top: window.innerWidth <= 480 ? "var(--nav-height, 7rem)" : "3rem",
+            left: window.innerWidth <= 480 ? "8px" : "auto",
+            right: window.innerWidth <= 480 ? "8px" : 0,
+            width: window.innerWidth <= 480 ? "auto" : "22rem",
+            zIndex: 190,
+          }}
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-app">
+            <p className="text-sm font-semibold text-main">Notifications</p>
+            {unread > 0 && (
+              <button
+                onClick={markAllRead}
+                className="text-[11px] font-semibold text-brand hover:underline"
               >
-                Notification settings
-              </Link>
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={() => setOpen(false)}
-                  className="text-[12px] font-semibold text-muted hover:text-main"
-                >
-                  Admin alerts →
-                </Link>
-              )}
-            </div>
+                Mark all read
+              </button>
+            )}
           </div>
-        )}
-      
+
+          <div className="max-h-[60vh] overflow-y-auto">
+            {loading && items.length === 0 && (
+              <div className="px-4 py-8 text-center text-xs text-faint">
+                Loading…
+              </div>
+            )}
+
+            {!loading && items.length === 0 && (
+              <div className="px-4 py-10 text-center">
+                <Bell size={20} className="mx-auto mb-2 text-faint" />
+                <p className="text-sm font-medium text-main">
+                  You're all caught up
+                </p>
+                <p className="text-xs text-muted mt-1">
+                  Notifications about your listings, reports and replies appear
+                  here.
+                </p>
+              </div>
+            )}
+
+            <ul>
+              {items.map((n) => {
+                const meta = TYPE_META[n.type] || TYPE_META.default;
+                const Icon = meta.Icon;
+                return (
+                  <li key={n.id}>
+                    <button
+                      onClick={() => handleItemClick(n)}
+                      className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-surface-2 transition-colors border-b border-app last:border-0 ${
+                        !n.is_read ? "bg-[hsl(var(--primary)/0.04)]" : ""
+                      }`}
+                    >
+                      <span
+                        className={`shrink-0 w-8 h-8 rounded-md grid place-items-center bg-surface-2 ${meta.color}`}
+                      >
+                        <Icon size={15} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-start justify-between gap-2">
+                          <span className="text-sm font-medium text-main truncate">
+                            {n.title}
+                          </span>
+                          {!n.is_read && (
+                            <span className="mt-1 shrink-0 w-1.5 h-1.5 rounded-full bg-brand" />
+                          )}
+                        </span>
+                        {n.body && (
+                          <span className="block text-xs text-muted line-clamp-2 mt-0.5">
+                            {n.body}
+                          </span>
+                        )}
+                        <span className="block text-[10px] text-faint mt-1 uppercase tracking-wider">
+                          {timeAgo(n.created_at)}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          <div className="px-4 py-2.5 border-t border-app bg-surface-2/40 flex items-center justify-between">
+            <Link
+              to="/account/notifications"
+              onClick={() => setOpen(false)}
+              className="text-[12px] font-semibold text-brand hover:underline"
+            >
+              Notification settings
+            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="text-[12px] font-semibold text-muted hover:text-main"
+              >
+                Admin alerts →
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

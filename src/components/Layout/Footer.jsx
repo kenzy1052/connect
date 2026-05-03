@@ -38,6 +38,7 @@ export default function Footer() {
               <FooterLink to="/account">Account settings</FooterLink>
               <FooterLink to="/help">FAQ &amp; Help</FooterLink>
               <FooterLink to="/safety">Safety tips</FooterLink>
+              <FooterLink to="/refund-policy">Refund &amp; Disputes</FooterLink>
             </ul>
           </div>
 
@@ -112,6 +113,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/refund-policy" className="text-muted hover:text-main transition-colors">Refund Policy</Link>
                 <Link to="/terms" className="text-muted hover:text-main transition-colors">
                   Terms of service
                 </Link>

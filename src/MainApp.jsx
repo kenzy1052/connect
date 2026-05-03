@@ -90,7 +90,7 @@ export default function MainApp() {
   const visibleListings = isHome ? listings.slice(0, 30) : listings;
 
   return (
-    <div className="min-h-screen bg-app text-main font-sans flex flex-col">
+    <div className="app-root min-h-screen bg-app text-main font-sans flex flex-col">
       <NavShell>
         <TopNav />
         <SecondaryBar onFilterClick={() => setFiltersOpen((v) => !v)} />

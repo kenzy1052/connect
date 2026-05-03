@@ -70,7 +70,7 @@ export default function HeroSection() {
         pointerX.set(0);
         pointerY.set(0);
       }}
-      className="relative isolate w-full overflow-hidden bg-app"
+      className="relative isolate w-full overflow-x-hidden bg-app"
     >
       {/* Ambient glows */}
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -94,7 +94,7 @@ export default function HeroSection() {
       </div>
 
       <div
-        className="mx-auto grid h-full max-w-7xl items-start lg:items-center gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:min-h-[calc(100svh-64px)]"
+        className="mx-auto grid h-full max-w-7xl items-start lg:items-center gap-6 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-12 lg:min-h-[calc(100svh-64px)] w-full min-w-0"
         style={{
           paddingTop: "clamp(1.75rem, 5svh, 3rem)",
           paddingBottom: "clamp(1.75rem, 4svh, 2.5rem)",
@@ -110,7 +110,7 @@ export default function HeroSection() {
               transition: { staggerChildren: 0.09, delayChildren: 0.04 },
             },
           }}
-          className="flex flex-col justify-center max-w-lg mx-auto lg:mx-0 items-center text-center lg:items-start lg:text-left"
+          className="flex flex-col justify-center max-w-full xs:max-w-lg mx-auto lg:mx-0 items-center text-center lg:items-start lg:text-left min-w-0 w-full"
         >
           <motion.span
             variants={itemVariant}
@@ -122,7 +122,7 @@ export default function HeroSection() {
 
           <motion.h1
             variants={itemVariant}
-            className="mt-4 w-full text-[1.7rem] font-bold leading-[1.18] tracking-tight text-main sm:text-[2.2rem] md:text-[2.75rem]"
+            className="mt-4 w-full text-[1.5rem] font-bold leading-[1.2] tracking-tight text-main sm:text-[2.2rem] md:text-[2.75rem]"
           >
             Trade smarter,{" "}
             <span className="text-brand" style={{ WebkitTextStroke: "0px" }}>

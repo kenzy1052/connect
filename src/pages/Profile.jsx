@@ -62,7 +62,6 @@ export default function Profile() {
 
   const [fullName, setFullName] = useState("");
   const [businessName, setBusinessName] = useState("");
-  const [bio, setBio] = useState("");
   const [saving, setSaving] = useState(false);
 
   const [avatarFile, setAvatarFile] = useState(null);
@@ -84,7 +83,6 @@ export default function Profile() {
     if (profile) {
       setFullName(profile.full_name || "");
       setBusinessName(profile.business_name || "");
-      setBio(profile.bio || "");
       setAvatarUrl(profile.avatar_url || null);
     }
   }, [profile]);
@@ -97,7 +95,9 @@ export default function Profile() {
     const image = new Image();
     const objectUrl = URL.createObjectURL(avatarFile);
     image.src = objectUrl;
-    await new Promise((resolve) => { image.onload = resolve; });
+    await new Promise((resolve) => {
+      image.onload = resolve;
+    });
     URL.revokeObjectURL(objectUrl);
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -105,12 +105,18 @@ export default function Profile() {
     canvas.height = croppedAreaPixels.height;
     ctx.drawImage(
       image,
-      croppedAreaPixels.x, croppedAreaPixels.y,
-      croppedAreaPixels.width, croppedAreaPixels.height,
-      0, 0,
-      croppedAreaPixels.width, croppedAreaPixels.height,
+      croppedAreaPixels.x,
+      croppedAreaPixels.y,
+      croppedAreaPixels.width,
+      croppedAreaPixels.height,
+      0,
+      0,
+      croppedAreaPixels.width,
+      croppedAreaPixels.height,
     );
-    return new Promise((resolve) => { canvas.toBlob((blob) => resolve(blob), "image/jpeg"); });
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), "image/jpeg");
+    });
   };
 
   const handleAvatarUpload = async () => {
@@ -126,7 +132,10 @@ export default function Profile() {
       const filePath = `${user.id}.jpg`;
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, croppedBlob, { upsert: true, contentType: "image/jpeg" });
+        .upload(filePath, croppedBlob, {
+          upsert: true,
+          contentType: "image/jpeg",
+        });
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
       const { error: updateError } = await supabase
@@ -146,13 +155,21 @@ export default function Profile() {
 
   const handleDeletePhoto = async () => {
     if (!user) return;
-    if (!window.confirm("Remove your profile photo? Your initials will show instead.")) return;
+    if (
+      !window.confirm(
+        "Remove your profile photo? Your initials will show instead.",
+      )
+    )
+      return;
     try {
       if (avatarUrl) {
         const path = avatarUrl.split("/avatars/")[1];
         if (path) await supabase.storage.from("avatars").remove([path]);
       }
-      const { error } = await supabase.from("profiles").update({ avatar_url: null }).eq("id", user.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", user.id);
       if (error) throw error;
       setAvatarUrl(null);
       showToast("Photo removed");
@@ -163,12 +180,18 @@ export default function Profile() {
 
   const handleSave = async () => {
     if (!user) return;
-    if (!fullName.trim()) { showToast("Full name is required", "error"); return; }
+    if (!fullName.trim()) {
+      showToast("Full name is required", "error");
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: fullName.trim(), business_name: businessName.trim() || null, bio: bio.trim() || null })
+        .update({
+          full_name: fullName.trim(),
+          business_name: businessName.trim() || null,
+        })
         .eq("id", user.id);
       if (error) throw error;
       showToast("Profile saved");
@@ -180,19 +203,42 @@ export default function Profile() {
   };
 
   const initials = (profile?.business_name || profile?.full_name || "U")
-    .split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   const trust = profile?.trust_score ?? 50;
-  const trustColor = trust >= 70 ? "text-emerald-400" : trust >= 40 ? "text-indigo-400" : "text-red-400";
-  const trustBg = trust >= 70 ? "bg-emerald-400" : trust >= 40 ? "bg-indigo-400" : "bg-red-400";
-  const trustLabel = trust >= 80 ? "Verified" : trust >= 60 ? "Trusted" : trust >= 40 ? "Active" : "New";
+  const trustColor =
+    trust >= 70
+      ? "text-emerald-400"
+      : trust >= 40
+        ? "text-indigo-400"
+        : "text-red-400";
+  const trustBg =
+    trust >= 70
+      ? "bg-emerald-400"
+      : trust >= 40
+        ? "bg-indigo-400"
+        : "bg-red-400";
+  const trustLabel =
+    trust >= 80
+      ? "Verified"
+      : trust >= 60
+        ? "Trusted"
+        : trust >= 40
+          ? "Active"
+          : "New";
 
   return (
     <div className="max-w-xl mx-auto pb-24 animate-in fade-in duration-300">
       <Toast message={toast.message} type={toast.type} />
 
       <div className="mb-8">
-        <h1 className="text-3xl font-black text-white tracking-tight">Profile</h1>
+        <h1 className="text-3xl font-black text-white tracking-tight">
+          Profile
+        </h1>
         <p className="text-sm text-slate-400 mt-2">
           Manage your personal details and profile photo.
         </p>
@@ -204,9 +250,15 @@ export default function Profile() {
           <div className="relative shrink-0 group">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-800 flex items-center justify-center border-4 border-slate-950 shadow-inner group-hover:border-indigo-500/50 transition-all duration-300">
               {avatarUrl ? (
-                <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                <img
+                  src={avatarUrl}
+                  alt="avatar"
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                <span className="text-white font-black text-3xl">{initials}</span>
+                <span className="text-white font-black text-3xl">
+                  {initials}
+                </span>
               )}
             </div>
             <label
@@ -214,7 +266,9 @@ export default function Profile() {
               className="absolute inset-0 rounded-full bg-black/70 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
             >
               <Camera className="text-white mb-1" size={20} />
-              <span className="text-white text-[10px] font-black uppercase tracking-widest text-center">Edit</span>
+              <span className="text-white text-[10px] font-black uppercase tracking-widest text-center">
+                Edit
+              </span>
             </label>
             <input
               type="file"
@@ -222,7 +276,11 @@ export default function Profile() {
               accept="image/*"
               onChange={(e) => {
                 const file = e.target.files[0];
-                if (file) { setAvatarFile(file); setCroppedAreaPixels(null); setShowCrop(true); }
+                if (file) {
+                  setAvatarFile(file);
+                  setCroppedAreaPixels(null);
+                  setShowCrop(true);
+                }
               }}
               className="hidden"
             />
@@ -232,7 +290,9 @@ export default function Profile() {
             <div className="font-bold text-white text-xl leading-tight truncate">
               {profile?.business_name || profile?.full_name || "Your Name"}
             </div>
-            <div className="text-slate-400 text-sm mt-1 truncate">{user?.email}</div>
+            <div className="text-slate-400 text-sm mt-1 truncate">
+              {user?.email}
+            </div>
             {avatarUrl && (
               <div className="mt-3">
                 <button
@@ -249,19 +309,29 @@ export default function Profile() {
                   <ShieldCheck size={14} /> Trust Score
                 </span>
                 <div className="flex items-center gap-2">
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md border ${
-                    trust >= 80 ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
-                    : trust >= 60 ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/10"
-                    : trust >= 40 ? "text-sky-400 border-sky-500/30 bg-sky-500/10"
-                    : "text-slate-400 border-slate-700 bg-slate-800"
-                  }`}>
+                  <span
+                    className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md border ${
+                      trust >= 80
+                        ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10"
+                        : trust >= 60
+                          ? "text-indigo-400 border-indigo-500/30 bg-indigo-500/10"
+                          : trust >= 40
+                            ? "text-sky-400 border-sky-500/30 bg-sky-500/10"
+                            : "text-slate-400 border-slate-700 bg-slate-800"
+                    }`}
+                  >
                     {trustLabel}
                   </span>
-                  <span className={`text-sm font-black ${trustColor}`}>{trust}</span>
+                  <span className={`text-sm font-black ${trustColor}`}>
+                    {trust}
+                  </span>
                 </div>
               </div>
               <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div className={`h-full rounded-full transition-all duration-700 ${trustBg}`} style={{ width: `${trust}%` }} />
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${trustBg}`}
+                  style={{ width: `${trust}%` }}
+                />
               </div>
             </div>
           </div>
@@ -272,32 +342,27 @@ export default function Profile() {
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-6 space-y-6 shadow-lg">
         <div className="flex items-center gap-2 border-b border-slate-800 pb-4">
           <UserIcon size={16} className="text-indigo-400" />
-          <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-300">Personal Details</h2>
+          <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-300">
+            Personal Details
+          </h2>
         </div>
 
         <Field label="Full Name *">
-          <TextInput icon={UserIcon} placeholder="e.g. Kenzy Mawutor" value={fullName} onChange={setFullName} />
+          <TextInput
+            icon={UserIcon}
+            placeholder="e.g. Kenzy Mawutor"
+            value={fullName}
+            onChange={setFullName}
+          />
         </Field>
 
         <Field label="Username / Brand Name (Optional)">
-          <TextInput icon={Building2} placeholder="e.g. KenzyVerse" value={businessName} onChange={setBusinessName} />
-        </Field>
-
-        <Field label="Bio (Optional)" hint="A short description shown on your seller profile.">
-          <div className="rounded-xl overflow-hidden border border-slate-800 focus-within:border-indigo-500/60 focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all bg-slate-950">
-            <div className="flex items-start pt-4 pl-4 text-slate-500">
-              <FileText size={18} />
-            </div>
-            <textarea
-              placeholder="Tell buyers a little about yourself or what you sell…"
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              rows={3}
-              maxLength={240}
-              className="w-full px-4 pb-4 -mt-7 pl-12 bg-transparent text-white outline-none placeholder:text-slate-700 text-sm resize-none"
-            />
-          </div>
-          <p className="text-[10px] text-slate-600 text-right">{bio.length}/240</p>
+          <TextInput
+            icon={Building2}
+            placeholder="e.g. KenzyVerse"
+            value={businessName}
+            onChange={setBusinessName}
+          />
         </Field>
       </div>
 
@@ -307,7 +372,14 @@ export default function Profile() {
         disabled={saving}
         className="w-full flex items-center justify-center gap-3 bg-white text-black py-4 rounded-2xl font-black text-[13px] uppercase tracking-[0.2em] hover:bg-indigo-500 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-white/5"
       >
-        {saving ? <><Loader2 size={18} className="animate-spin" />Saving...</> : "Save Changes"}
+        {saving ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Saving...
+          </>
+        ) : (
+          "Save Changes"
+        )}
       </button>
 
       {/* CROP MODAL */}
@@ -319,7 +391,11 @@ export default function Profile() {
                 <Camera size={16} /> Crop Photo
               </p>
               <button
-                onClick={() => { setShowCrop(false); setAvatarFile(null); setCroppedAreaPixels(null); }}
+                onClick={() => {
+                  setShowCrop(false);
+                  setAvatarFile(null);
+                  setCroppedAreaPixels(null);
+                }}
                 className="text-slate-500 hover:text-white bg-slate-800 hover:bg-slate-700 p-1.5 rounded-full transition-all"
               >
                 <X size={16} />
@@ -339,31 +415,51 @@ export default function Profile() {
             <div className="px-6 pt-6 pb-2">
               <label className="text-[10px] font-black flex justify-between uppercase tracking-widest text-slate-400 mb-3">
                 <span>Zoom</span>
-                <span className="text-indigo-400">{Math.round(zoom * 100)}%</span>
+                <span className="text-indigo-400">
+                  {Math.round(zoom * 100)}%
+                </span>
               </label>
               <input
-                type="range" min={1} max={3} step={0.05} value={zoom}
+                type="range"
+                min={1}
+                max={3}
+                step={0.05}
+                value={zoom}
                 onChange={(e) => setZoom(Number(e.target.value))}
                 className="w-full accent-indigo-500 h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer"
               />
             </div>
             <div className="p-6 flex gap-3">
               <button
-                onClick={() => { setShowCrop(false); setAvatarFile(null); setCroppedAreaPixels(null); }}
+                onClick={() => {
+                  setShowCrop(false);
+                  setAvatarFile(null);
+                  setCroppedAreaPixels(null);
+                }}
                 className="flex-1 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-slate-300 bg-slate-800 hover:bg-slate-700 transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={async () => {
-                  if (!croppedAreaPixels) { showToast("Adjust the crop first", "error"); return; }
+                  if (!croppedAreaPixels) {
+                    showToast("Adjust the crop first", "error");
+                    return;
+                  }
                   await handleAvatarUpload();
                   setShowCrop(false);
                 }}
                 disabled={uploading}
                 className="flex-1 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-500 transition-all disabled:opacity-50 flex justify-center items-center gap-2"
               >
-                {uploading ? <><Loader2 size={16} className="animate-spin" />Uploading...</> : "Crop & Upload"}
+                {uploading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  "Crop & Upload"
+                )}
               </button>
             </div>
           </div>

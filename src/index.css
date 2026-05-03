@@ -474,24 +474,32 @@
 }
 
 /* ── Base styles ─────────────────────────────────────────────── */
-html,
-body,
 #root {
-  min-height: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 html {
   scroll-behavior: smooth;
-  overflow-x: hidden; /* prevent any child from ever causing horizontal scroll */
+  /* NOTE: overflow-x:hidden is intentionally NOT set on html — it breaks
+     position:sticky on child elements (NavShell). Horizontal overflow is
+     prevented by the .app-root wrapper below instead. */
+  overflow-x: clip;
 }
 body {
   margin: 0;
-  overflow-x: hidden;
+  /* Use min-height: 100vh to ensure the gradient covers the full viewport */
+  min-height: 100vh;
+  /* overflow-x: clip is the modern alternative to 'hidden' that allows sticky children */
+  overflow-x: clip;
+
   background: linear-gradient(
     145deg,
     hsl(var(--bg)) 0%,
     hsl(var(--surface)) 58%,
     hsl(var(--bg)) 100%
   );
+  background-attachment: fixed; /* Keeps the gradient stable while scrolling */
   color: hsl(var(--text));
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
