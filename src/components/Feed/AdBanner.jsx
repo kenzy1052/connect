@@ -5,30 +5,15 @@ import { ExternalLink, X } from "lucide-react";
 /**
  * AdBanner — fetches a single active ad from the `ads` table and renders it
  * as a dismissable banner in the feed.
- *
- * To add a new ad:
- *   1. Go to Supabase → Table Editor → ads
- *   2. Insert a row:
- *      - title: short headline (e.g. "50% off Graphic Design services")
- *      - body: supporting text (optional)
- *      - cta_url: where clicking the ad should go (can be internal /path or external URL)
- *      - image_url: Cloudinary/Supabase image URL (optional but recommended)
- *      - is_active: true
- *      - starts_at: now
- *      - ends_at: when you want it to expire (or leave null for indefinite)
- *   3. The banner will appear automatically on the feed page.
- *
- * Slot key "feed-top" is the default. You can use different slot_key values
- * to show different ads in different parts of the UI by rendering
- * <AdBanner slot="your-key" /> where you want it.
  */
 export default function AdBanner({ slot = "feed-top" }) {
+  console.log("🔥 AdBanner is attempting to mount with slot:", slot); // HEARTBEAT LOG
+
   const [ad, setAd] = useState(null);
   const [dismissed, setDismissed] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    // Check if this ad slot was dismissed in this session
     const key = `ad_dismissed_${slot}`;
     if (sessionStorage.getItem(key)) {
       setDismissed(true);
@@ -37,6 +22,7 @@ export default function AdBanner({ slot = "feed-top" }) {
 
     const fetchAd = async () => {
       const now = new Date().toISOString();
+
       const { data, error } = await supabase
         .from("ads")
         .select("*")
@@ -48,9 +34,20 @@ export default function AdBanner({ slot = "feed-top" }) {
         .limit(1)
         .single();
 
-      if (!error && data) {
-        setAd(data);
+      // --- DEBUGGING LOGS ---
+      if (error) {
+        console.error(
+          `[AdBanner Debug] Error fetching for slot "${slot}":`,
+          error.message,
+        );
+      } else if (!data) {
+        console.warn(`[AdBanner Debug] No active ad found for slot "${slot}".`);
+      } else {
+        console.log(`[AdBanner Debug] Ad loaded successfully:`, data);
       }
+      // ----------------------
+
+      if (!error && data) setAd(data);
       setLoaded(true);
     };
 
@@ -60,8 +57,6 @@ export default function AdBanner({ slot = "feed-top" }) {
   const handleDismiss = () => {
     sessionStorage.setItem(`ad_dismissed_${slot}`, "1");
     setDismissed(true);
-
-    // Log dismiss event (fire-and-forget)
     if (ad?.id) {
       supabase.from("ad_events").insert({
         ad_id: ad.id,
@@ -87,15 +82,27 @@ export default function AdBanner({ slot = "feed-top" }) {
     ad.cta_url &&
     (ad.cta_url.startsWith("http://") || ad.cta_url.startsWith("https://"));
 
+  // Media Logic: Video takes priority over Image
+  const media = ad.video_url ? (
+    <video
+      src={ad.video_url}
+      autoPlay
+      muted
+      loop
+      playsInline
+      className="w-16 h-12 rounded-lg object-cover shrink-0 border border-app"
+    />
+  ) : ad.image_url ? (
+    <img
+      src={ad.image_url}
+      alt=""
+      className="w-12 h-12 rounded-lg object-cover shrink-0 border border-app"
+    />
+  ) : null;
+
   const content = (
     <div className="flex items-center gap-3 flex-1 min-w-0">
-      {ad.image_url && (
-        <img
-          src={ad.image_url}
-          alt=""
-          className="w-12 h-12 rounded-lg object-cover shrink-0 border border-app"
-        />
-      )}
+      {media}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[9px] font-black uppercase tracking-widest text-faint bg-surface-2 border border-app px-1.5 py-0.5 rounded">
