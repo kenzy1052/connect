@@ -485,6 +485,9 @@ html {
      position:sticky on child elements (NavShell). Horizontal overflow is
      prevented by the .app-root wrapper below instead. */
   overflow-x: clip;
+  /* Reserve space for the scrollbar so content doesn't shift left
+     when a page becomes scrollable (fixes asymmetric margin appearance). */
+  scrollbar-gutter: stable;
 }
 body {
   margin: 0;

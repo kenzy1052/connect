@@ -10,7 +10,9 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-app bg-surface mt-16">
+    /* pb-24 md:pb-0 — on mobile the fixed bottom nav (~4rem) overlaps the footer,
+       so we push the footer content up by the same amount */
+    <footer className="border-t border-app bg-surface mt-16 pb-24 md:pb-0">
       <div className="mx-auto max-w-7xl px-6 py-12">
         {/* Adjusted grid: 1 column on tiny screens, 2 on small, 4 on medium+ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-10">

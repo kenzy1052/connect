@@ -1,3 +1,5 @@
+import { ShieldCheck, CheckCircle2 } from "lucide-react";
+
 export default function Privacy() {
   const sections = [
     {
@@ -106,7 +108,8 @@ export default function Privacy() {
             Privacy Policy
           </h1>
           <p className="text-lg text-slate-400">
-            We collect only what we need to keep the marketplace safe and functional. We never sell your information.
+            We collect only what we need to keep the marketplace safe and
+            functional. We never sell your information.
           </p>
         </header>
 
@@ -122,10 +125,15 @@ export default function Privacy() {
           {sections.map((section, idx) => (
             <section
               key={idx}
-              className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-indigo-500/30 transition-colors"
+              className="premium-card p-6 hover:border-brand/30 transition-colors"
             >
-              <h2 className="text-lg font-bold text-indigo-400 mb-3">{section.title}</h2>
-              <p className="text-slate-300 whitespace-pre-line leading-relaxed">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck size={16} className="text-brand shrink-0" />
+                <h2 className="text-base font-bold text-brand">
+                  {section.title}
+                </h2>
+              </div>
+              <p className="text-muted whitespace-pre-line leading-relaxed text-sm">
                 {section.content}
               </p>
             </section>
@@ -133,29 +141,32 @@ export default function Privacy() {
         </div>
 
         {/* Key Commitments */}
-        <section className="bg-gradient-to-br from-emerald-600/10 to-slate-900 border border-emerald-500/20 rounded-2xl p-8 mt-12">
-          <h2 className="text-2xl font-bold text-white mb-4">Our Commitments</h2>
-          <ul className="space-y-3 text-slate-300">
-            <li className="flex gap-3">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>We will never sell your personal data to third parties</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>We use industry-standard encryption to protect your information</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>You have full control over your data and can request deletion</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>We are transparent about how we collect and use data</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>We comply with all applicable data protection laws</span>
-            </li>
+        <section
+          className="premium-card p-8 mt-12"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--success)/0.08), hsl(var(--surface)))",
+            borderColor: "hsl(var(--success)/0.2)",
+          }}
+        >
+          <h2 className="text-xl font-bold text-main mb-4">Our Commitments</h2>
+          <ul className="space-y-3 text-muted">
+            {[
+              "We will never sell your personal data to third parties",
+              "We use industry-standard encryption to protect your information",
+              "You have full control over your data and can request deletion",
+              "We are transparent about how we collect and use data",
+              "We comply with all applicable data protection laws",
+            ].map((item, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <CheckCircle2
+                  size={16}
+                  className="mt-0.5 shrink-0"
+                  style={{ color: "hsl(var(--success))" }}
+                />
+                <span className="text-sm">{item}</span>
+              </li>
+            ))}
           </ul>
         </section>
       </div>

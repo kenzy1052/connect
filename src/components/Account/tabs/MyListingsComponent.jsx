@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../context/AuthContext";
 import { GridSkeleton } from "../../UI/Skeleton";
 import { getTrustTier } from "../../../utils/trustTier";
+import ConfirmModal from "../../UI/ConfirmModal";
 import {
   Package,
   AlertTriangle,
@@ -17,6 +18,7 @@ export default function MyListings({ onCreateListing }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -30,7 +32,6 @@ export default function MyListings({ onCreateListing }) {
       .select("*")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
-
     if (error) console.error("MyListings error:", error.message);
     if (!error && data) setListings(data);
     setLoading(false);
@@ -45,17 +46,23 @@ export default function MyListings({ onCreateListing }) {
 
   const getStatusColor = (listing) => {
     if (listing.is_hidden) return "text-red-400";
-    if (!listing.is_active) {
+    if (!listing.is_active)
       return listing.sold_at ? "text-slate-400" : "text-red-400";
-    }
     return "text-emerald-400";
   };
 
-  const deleteListing = async (listing) => {
-    if (!window.confirm(`Permanently delete "${listing.title}"?`)) return;
+  const deleteListing = (listing) => {
+    setConfirm({
+      title: "Delete listing?",
+      message: `Permanently delete "${listing.title}"? This cannot be undone.`,
+      variant: "danger",
+      confirmLabel: "Delete",
+      onConfirm: () => _doDelete(listing),
+    });
+  };
 
+  const _doDelete = async (listing) => {
     setActionId(listing.id);
-
     const { data: images } = await supabase
       .from("listing_images")
       .select("image_url")
@@ -75,10 +82,8 @@ export default function MyListings({ onCreateListing }) {
           }
         })
         .filter(Boolean);
-
-      if (paths.length) {
+      if (paths.length)
         await supabase.storage.from("listing-images").remove(paths);
-      }
     }
 
     const { error } = await supabase
@@ -87,26 +92,29 @@ export default function MyListings({ onCreateListing }) {
       .eq("id", listing.id)
       .eq("seller_id", user.id);
 
-    if (error) {
-      alert("Failed: " + error.message);
-    } else {
-      setListings((prev) => prev.filter((l) => l.id !== listing.id));
-    }
-
+    if (error) alert("Failed: " + error.message);
+    else setListings((prev) => prev.filter((l) => l.id !== listing.id));
     setActionId(null);
   };
 
-  const markAsSold = async (listing) => {
-    if (!window.confirm(`Mark "${listing.title}" as sold?`)) return;
+  const markAsSold = (listing) => {
+    setConfirm({
+      title: "Mark as sold?",
+      message: `Mark "${listing.title}" as sold? This will boost your trust score.`,
+      variant: "success",
+      confirmLabel: "Mark Sold",
+      onConfirm: () => _doMarkSold(listing),
+    });
+  };
+
+  const _doMarkSold = async (listing) => {
     setActionId(listing.id);
     const { error } = await supabase
       .from("listings")
       .update({ is_active: false, sold_at: new Date().toISOString() })
       .eq("id", listing.id);
-
-    if (error) {
-      alert("Failed: " + error.message);
-    } else {
+    if (error) alert("Failed: " + error.message);
+    else {
       await supabase.rpc("increment_trust_on_sale", {
         p_listing_id: listing.id,
       });
@@ -116,15 +124,14 @@ export default function MyListings({ onCreateListing }) {
   };
 
   const getPrice = (l) => {
-    if (l.price !== null) return "GH₵ " + l.price;
+    if (l.price !== null) return "GH\u20b5 " + l.price;
     if (l.price_min && l.price_max)
-      return `GH₵ ${l.price_min} – ${l.price_max}`;
-    return l.price_min ? `From GH₵ ${l.price_min}` : "Ask for price";
+      return `GH\u20b5 ${l.price_min} \u2013 ${l.price_max}`;
+    return l.price_min ? `From GH\u20b5 ${l.price_min}` : "Ask for price";
   };
 
   const tier = getTrustTier(profile?.trust_score ?? 50);
 
-  // Replaced spinner with GridSkeleton
   if (loading)
     return (
       <div className="max-w-3xl mx-auto pb-24">
@@ -134,10 +141,14 @@ export default function MyListings({ onCreateListing }) {
 
   return (
     <div className="max-w-3xl mx-auto pb-24 animate-in fade-in duration-300">
+      {confirm && (
+        <ConfirmModal {...confirm} onClose={() => setConfirm(null)} />
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl font-black text-white">My Listings</h1>
         <p className="text-sm text-slate-500 mt-1">
-          {listings.length} listings · Trust score:{" "}
+          {listings.length} listings \u00b7 Trust score:{" "}
           <span className={`font-bold ${tier.color}`}>{tier.label}</span>
         </p>
       </div>
@@ -158,8 +169,6 @@ export default function MyListings({ onCreateListing }) {
           {listings.map((listing) => {
             const imgUrl = listing.image_url || null;
             const busy = actionId === listing.id;
-            const statusLabel = getStatus(listing);
-
             return (
               <div
                 key={listing.id}
@@ -177,7 +186,6 @@ export default function MyListings({ onCreateListing }) {
                     This listing was removed for violating guidelines.
                   </div>
                 )}
-
                 {listing.is_hidden && (
                   <div className="w-full px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-red-400 text-[11px] font-bold flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -192,7 +200,6 @@ export default function MyListings({ onCreateListing }) {
                     </button>
                   </div>
                 )}
-
                 <div className="flex w-full">
                   <div className="w-24 h-24 md:w-28 md:h-28 shrink-0 bg-slate-800 overflow-hidden">
                     {imgUrl ? (
@@ -207,7 +214,6 @@ export default function MyListings({ onCreateListing }) {
                       </div>
                     )}
                   </div>
-
                   <div className="flex-1 p-4 flex flex-col sm:flex-row sm:items-center gap-3 min-w-0">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -217,14 +223,15 @@ export default function MyListings({ onCreateListing }) {
                         <span
                           className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-slate-800/50 border border-slate-700/50 ${getStatusColor(listing)}`}
                         >
-                          {statusLabel}
+                          {getStatus(listing)}
                         </span>
                       </div>
                       <p className="text-slate-500 text-xs mt-1">
-                        {listing.category_name} ·{" "}
-                        <span className="font-bold text-price">{getPrice(listing)}</span>
+                        {listing.category_name} \u00b7{" "}
+                        <span className="font-bold text-price">
+                          {getPrice(listing)}
+                        </span>
                       </p>
-
                       <div className="mt-2 flex items-center gap-4 text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <Eye className="w-4 h-4" />
@@ -240,7 +247,6 @@ export default function MyListings({ onCreateListing }) {
                         </span>
                       </div>
                     </div>
-
                     <div className="flex items-center gap-2 shrink-0">
                       {listing.is_active && !listing.is_hidden && (
                         <button
@@ -248,10 +254,9 @@ export default function MyListings({ onCreateListing }) {
                           disabled={busy}
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all disabled:opacity-50"
                         >
-                          {busy ? "..." : "Mark Sold"}
+                          {busy ? "\u2026" : "Mark Sold"}
                         </button>
                       )}
-
                       <button
                         onClick={() => deleteListing(listing)}
                         disabled={busy}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { Loader2, Trash2, CheckCircle2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import ConfirmModal from "../UI/ConfirmModal";
 export default function AdminFaqTab() {
   const toast = useToast();
   const [questions, setQuestions] = useState([]);
@@ -9,6 +10,7 @@ export default function AdminFaqTab() {
   const [selectedQuestion, setSelectedQuestion] = useState(null);
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     fetchQuestions();
@@ -54,17 +56,23 @@ export default function AdminFaqTab() {
     setSubmitting(false);
   }
 
-  async function handleDeleteQuestion(id) {
-    if (!window.confirm("Delete this question?")) return;
+  function handleDeleteQuestion(id) {
+    setConfirm({
+      title: "Delete question?",
+      message: "This FAQ question and its answer will be permanently removed.",
+      variant: "danger",
+      confirmLabel: "Delete",
+      onConfirm: () => _doDeleteQuestion(id),
+    });
+  }
 
+  async function _doDeleteQuestion(id) {
     const { error } = await supabase
       .from("faq_questions")
       .delete()
       .eq("id", id);
-
-    if (error) {
-      toast.error("Failed to delete question.");
-    } else {
+    if (error) toast.error("Failed to delete question.");
+    else {
       toast.success("Question deleted.");
       fetchQuestions();
     }
@@ -80,6 +88,9 @@ export default function AdminFaqTab() {
 
   return (
     <div className="space-y-6">
+      {confirm && (
+        <ConfirmModal {...confirm} onClose={() => setConfirm(null)} />
+      )}
       <h2 className="text-xl font-bold text-white">Manage FAQ Questions</h2>
 
       <div className="grid md:grid-cols-2 gap-6">

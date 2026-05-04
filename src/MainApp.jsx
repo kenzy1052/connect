@@ -9,6 +9,7 @@ import SecondaryBar from "./components/Layout/SecondaryBar";
 import HeroSection from "./components/Layout/HeroSection";
 import Footer from "./components/Layout/Footer";
 import OfflineBanner from "./components/Layout/OfflineBanner";
+import AdBanner from "./components/Feed/AdBanner";
 
 export default function MainApp() {
   const { user, profile } = useAuth();
@@ -122,6 +123,9 @@ export default function MainApp() {
               setSortBy={setSortBy}
             />
           )}
+
+          {/* Ad banner — only shown on feed pages */}
+          {isFeedView && <AdBanner slot="feed-top" />}
 
           {error && !dismissedError && (
             <div

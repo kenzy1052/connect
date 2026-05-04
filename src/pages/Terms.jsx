@@ -1,3 +1,4 @@
+import { FileText, Mail } from "lucide-react";
 export default function Terms() {
   const sections = [
     {
@@ -99,14 +100,17 @@ export default function Terms() {
             Terms of Service
           </h1>
           <p className="text-lg text-slate-400">
-            By using CampusConnect, you agree to trade honestly, list real items, and respect fellow students. Please read these terms carefully.
+            By using CampusConnect, you agree to trade honestly, list real
+            items, and respect fellow students. Please read these terms
+            carefully.
           </p>
         </header>
 
         {/* Last Updated */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-8">
-          <p className="text-sm text-slate-400">
-            <span className="font-bold">Last Updated:</span> April 28, 2026
+        <div className="premium-card p-4 mb-8">
+          <p className="text-sm text-muted">
+            <span className="font-bold text-main">Last Updated:</span> April 28,
+            2026
           </p>
         </div>
 
@@ -115,10 +119,15 @@ export default function Terms() {
           {sections.map((section, idx) => (
             <section
               key={idx}
-              className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-indigo-500/30 transition-colors"
+              className="premium-card p-6 hover:border-brand/30 transition-colors"
             >
-              <h2 className="text-lg font-bold text-indigo-400 mb-3">{section.title}</h2>
-              <p className="text-slate-300 whitespace-pre-line leading-relaxed">
+              <div className="flex items-center gap-2 mb-3">
+                <FileText size={15} className="text-brand shrink-0" />
+                <h2 className="text-base font-bold text-brand">
+                  {section.title}
+                </h2>
+              </div>
+              <p className="text-muted whitespace-pre-line leading-relaxed text-sm">
                 {section.content}
               </p>
             </section>
@@ -126,11 +135,23 @@ export default function Terms() {
         </div>
 
         {/* Contact */}
-        <section className="bg-gradient-to-br from-indigo-600/10 to-slate-900 border border-indigo-500/20 rounded-2xl p-8 mt-12">
-          <h2 className="text-2xl font-bold text-white mb-4">Questions?</h2>
-          <p className="text-slate-300 mb-4">
-            If you have any questions about these Terms of Service, please contact us at{" "}
-            <a href="mailto:hello@campusconnect.gh" className="text-indigo-400 hover:underline">
+        <section
+          className="premium-card p-8 mt-12"
+          style={{
+            background:
+              "linear-gradient(135deg, hsl(var(--primary)/0.08), hsl(var(--surface)))",
+            borderColor: "hsl(var(--primary)/0.2)",
+          }}
+        >
+          <h2 className="text-xl font-bold text-main mb-3">Questions?</h2>
+          <p className="text-muted text-sm">
+            If you have any questions about these Terms of Service, please
+            contact us at{" "}
+            <a
+              href="mailto:hello@campusconnect.gh"
+              className="text-brand hover:underline inline-flex items-center gap-1"
+            >
+              <Mail size={13} />
               hello@campusconnect.gh
             </a>
           </p>

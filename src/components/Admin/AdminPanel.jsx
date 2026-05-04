@@ -3,11 +3,9 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 import ListingDetail from "../Feed/ListingDetail";
 import AdminFaqTab from "./AdminFaqTab";
+import ConfirmModal from "../UI/ConfirmModal";
 
 export default function AdminPanel() {
-  // BUG FIX: AdminPanel was missing useAuth entirely. This caused admin_id to
-  // always be null in every frontend-generated audit log row, making the audit
-  // trail useless for accountability. We now pass user.id explicitly.
   const { user } = useAuth();
 
   const [adminProfile, setAdminProfile] = useState(null);
@@ -20,14 +18,22 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
   useEffect(() => {
     fetchAll();
     // Fetch admin's own profile for the header card
     if (user?.id) {
-      supabase.from("profiles").select("full_name, business_name, email, trust_score, avatar_url, role")
-        .eq("id", user.id).single()
-        .then(({ data }) => { if (data) setAdminProfile(data); });
+      supabase
+        .from("profiles")
+        .select(
+          "full_name, business_name, email, trust_score, avatar_url, role",
+        )
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) setAdminProfile(data);
+        });
     }
   }, [user?.id]);
 
@@ -161,18 +167,23 @@ export default function AdminPanel() {
     setActionId(null);
   };
 
-  const dismissAllReports = async (listingId) => {
-    if (!window.confirm("Dismiss all reports for this listing?")) return;
+  const dismissAllReports = (listingId) => {
+    setConfirm({
+      title: "Dismiss all reports?",
+      message: "All pending reports for this listing will be dismissed.",
+      variant: "warning",
+      confirmLabel: "Dismiss",
+      onConfirm: () => _doDismissReports(listingId),
+    });
+  };
+
+  const _doDismissReports = async (listingId) => {
     setActionId(listingId);
     const { error } = await supabase.rpc("admin_dismiss_reports_for_listing", {
       p_listing_id: listingId,
     });
-    if (error) {
-      alert(error.message);
-    } else {
-      // admin_dismiss_reports_for_listing does NOT log internally, so we log here.
-      await logAdminAction("DISMISS_REPORTS", "listing", listingId);
-    }
+    if (error) alert(error.message);
+    else await logAdminAction("DISMISS_REPORTS", "listing", listingId);
     await fetchAll();
     setActionId(null);
   };
@@ -207,25 +218,22 @@ export default function AdminPanel() {
     setLoading(false);
   };
 
-  const handleDeleteListing = async (listingId) => {
-    if (
-      !window.confirm(
-        "CRITICAL: Permanently delete this listing? This cannot be undone.",
-      )
-    )
-      return;
+  const handleDeleteListing = (listingId) => {
+    setConfirm({
+      title: "Permanently delete listing?",
+      message: "CRITICAL: This action cannot be undone.",
+      variant: "danger",
+      confirmLabel: "Delete Permanently",
+      onConfirm: () => _doDeleteListing(listingId),
+    });
+  };
+
+  const _doDeleteListing = async (listingId) => {
     setActionId(listingId);
     const { error } = await supabase.rpc("admin_delete_listing", {
       p_listing_id: listingId,
     });
-    if (error) {
-      alert(error.message);
-    }
-    // BUG FIX: Removed logAdminAction("DELETE_LISTING") call here.
-    // admin_delete_listing() already writes its own audit row with the correct
-    // admin_id from auth.uid(). Calling logAdminAction after created a duplicate
-    // row (action='DELETE_LISTING', admin_id=null) visible in the Audit Log tab.
-
+    if (error) alert(error.message);
     await fetchAll();
     setActionId(null);
   };
@@ -252,39 +260,49 @@ export default function AdminPanel() {
     setActionId(null);
   };
 
-  const confirmListingPenalty = async (listingId) => {
-    if (!window.confirm("Confirm all reports and penalize listing?")) return;
+  const confirmListingPenalty = (listingId) => {
+    setConfirm({
+      title: "Confirm reports & penalize?",
+      message:
+        "All reports will be confirmed and the listing will be penalized.",
+      variant: "danger",
+      confirmLabel: "Confirm & Penalize",
+      onConfirm: () => _doConfirmPenalty(listingId),
+    });
+  };
 
+  const _doConfirmPenalty = async (listingId) => {
     setActionId(listingId);
-
     const { error } = await supabase.rpc("admin_confirm_listing_reports", {
       p_listing_id: listingId,
     });
-
     if (error) {
       alert(error.message);
       setActionId(null);
       return;
     }
-
-    // ❌ DO NOT LOG HERE — SQL HANDLES IT
-
     await fetchAll();
     setActionId(null);
   };
 
-  const resetTrust = async (userId, name) => {
-    if (!window.confirm(`Reset ${name}'s trust score to 25?`)) return;
+  const resetTrust = (userId, name) => {
+    setConfirm({
+      title: "Reset trust score?",
+      message: `Reset ${name}'s trust score to 25? This affects their listing visibility.`,
+      variant: "warning",
+      confirmLabel: "Reset to 25",
+      onConfirm: () => _doResetTrust(userId),
+    });
+  };
 
+  const _doResetTrust = async (userId) => {
     const { error } = await supabase.rpc("admin_reset_trust", {
       p_user_id: userId,
     });
-
     if (error) {
       alert(error.message);
       return;
     }
-
     await fetchAll();
   };
 
@@ -332,6 +350,9 @@ export default function AdminPanel() {
 
   return (
     <div className="max-w-5xl mx-auto pb-24 animate-in fade-in duration-300">
+      {confirm && (
+        <ConfirmModal {...confirm} onClose={() => setConfirm(null)} />
+      )}
       {/* HEADER */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -344,9 +365,15 @@ export default function AdminPanel() {
           <div className="flex items-center gap-3 bg-slate-900 border border-indigo-500/30 rounded-2xl px-4 py-3 shrink-0">
             <div className="w-10 h-10 rounded-full overflow-hidden bg-indigo-600 flex items-center justify-center text-white font-black text-sm shrink-0">
               {adminProfile.avatar_url ? (
-                <img src={adminProfile.avatar_url} alt="" className="w-full h-full object-cover" />
+                <img
+                  src={adminProfile.avatar_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
               ) : (
-                (adminProfile.business_name || adminProfile.full_name || "A")[0].toUpperCase()
+                (adminProfile.business_name ||
+                  adminProfile.full_name ||
+                  "A")[0].toUpperCase()
               )}
             </div>
             <div className="min-w-0">
@@ -354,10 +381,17 @@ export default function AdminPanel() {
                 {adminProfile.business_name || adminProfile.full_name}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">Admin</span>
+                <span className="text-[10px] font-black uppercase text-indigo-400 tracking-widest">
+                  Admin
+                </span>
                 <span className="text-slate-700">·</span>
                 <span className="text-[10px] text-slate-400">
-                  Trust Score: <span className={`font-black ${(adminProfile.trust_score ?? 50) >= 70 ? "text-emerald-400" : "text-indigo-400"}`}>{adminProfile.trust_score ?? 50}</span>
+                  Trust Score:{" "}
+                  <span
+                    className={`font-black ${(adminProfile.trust_score ?? 50) >= 70 ? "text-emerald-400" : "text-indigo-400"}`}
+                  >
+                    {adminProfile.trust_score ?? 50}
+                  </span>
                 </span>
               </div>
             </div>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabaseClient";
 import Cropper from "react-easy-crop";
+import ConfirmModal from "../components/UI/ConfirmModal";
 import {
   Camera,
   CheckCircle2,
@@ -74,6 +75,7 @@ export default function Profile() {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const [toast, setToast] = useState({ message: "", type: "success" });
+  const [confirm, setConfirm] = useState(null);
   const showToast = (message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast({ message: "", type: "success" }), 3500);
@@ -153,14 +155,18 @@ export default function Profile() {
     }
   };
 
-  const handleDeletePhoto = async () => {
+  const handleDeletePhoto = () => {
+    setConfirm({
+      title: "Remove profile photo?",
+      message: "Your initials will show instead.",
+      variant: "warning",
+      confirmLabel: "Remove Photo",
+      onConfirm: _doDeletePhoto,
+    });
+  };
+
+  const _doDeletePhoto = async () => {
     if (!user) return;
-    if (
-      !window.confirm(
-        "Remove your profile photo? Your initials will show instead.",
-      )
-    )
-      return;
     try {
       if (avatarUrl) {
         const path = avatarUrl.split("/avatars/")[1];
@@ -234,6 +240,9 @@ export default function Profile() {
   return (
     <div className="max-w-xl mx-auto pb-24 animate-in fade-in duration-300">
       <Toast message={toast.message} type={toast.type} />
+      {confirm && (
+        <ConfirmModal {...confirm} onClose={() => setConfirm(null)} />
+      )}
 
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white tracking-tight">
