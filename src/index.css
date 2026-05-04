@@ -478,6 +478,14 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  max-width: 2480px;
+  margin-inline: auto;
+}
+
+.app-root {
+  max-width: 2480px;
+  width: 100%;
+  margin-inline: auto;
 }
 html {
   scroll-behavior: smooth;
@@ -488,6 +496,8 @@ html {
   /* Reserve space for the scrollbar so content doesn't shift left
      when a page becomes scrollable (fixes asymmetric margin appearance). */
   scrollbar-gutter: stable;
+  /* Prevent elastic overscroll bounce that shows empty space at top/bottom */
+  overscroll-behavior: none;
 }
 body {
   margin: 0;
@@ -495,6 +505,8 @@ body {
   min-height: 100vh;
   /* overflow-x: clip is the modern alternative to 'hidden' that allows sticky children */
   overflow-x: clip;
+  /* Prevent elastic overscroll bounce that shows empty space at top/bottom */
+  overscroll-behavior: none;
 
   background: linear-gradient(
     145deg,

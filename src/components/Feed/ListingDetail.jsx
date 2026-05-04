@@ -110,10 +110,17 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
     // Also fetch condition from listings table (not always in discovery_feed view)
     const { data: extra } = await supabase
       .from("listings")
-      .select("condition, listing_type, negotiable, location")
+      .select("condition, type, negotiable")
       .eq("id", id)
       .single();
-    return extra ? { ...data, condition: extra.condition ?? data.condition, listing_type: extra.listing_type ?? data.listing_type, negotiable: extra.negotiable ?? data.negotiable } : data;
+    return extra
+      ? {
+          ...data,
+          condition: extra.condition ?? data.condition,
+          listing_type: extra.type ?? data.listing_type,
+          negotiable: extra.negotiable ?? data.negotiable,
+        }
+      : data;
   }, [listing?.id, listingId]);
 
   const recordEngagement = useCallback(
@@ -121,12 +128,11 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
       const lid = listing?.id || listingId;
       if (!user || !lid) return;
       try {
-        await supabase.from("listing_engagements").upsert(
-          { listing_id: lid, user_id: user.id, type },
-          { onConflict: "listing_id,user_id,type", ignoreDuplicates: true }
-        );
+        await supabase
+          .from("listing_engagements")
+          .insert({ listing_id: lid, user_id: user.id, type });
       } catch (err) {
-        // non-critical, ignore silently
+        // 23505 = unique violation (already recorded today) — expected, ignore
       }
     },
     [listing?.id, listingId, user],
@@ -270,12 +276,18 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
 
   // Guard against null listingData before any constant/JSX access
   if (!listingData && loading) return <DetailSkeleton />;
-  if (!listingData && !loading) return (
-    <div className="flex flex-col items-center justify-center py-32 text-center">
-      <p className="text-slate-400 font-bold">Listing not found.</p>
-      <button onClick={onBack} className="mt-4 text-sm text-indigo-400 hover:underline">← Back to Marketplace</button>
-    </div>
-  );
+  if (!listingData && !loading)
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <p className="text-slate-400 font-bold">Listing not found.</p>
+        <button
+          onClick={onBack}
+          className="mt-4 text-sm text-indigo-400 hover:underline"
+        >
+          ← Back to Marketplace
+        </button>
+      </div>
+    );
   // Full loading skeleton when we have a stale listing but are refreshing
   if (loading) return <DetailSkeleton />;
 
@@ -668,7 +680,8 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
                         ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25"
                         : listingData.condition === "used"
                           ? "bg-amber-500/15 text-amber-300 border border-amber-500/25"
-                          : listingData.condition === "like_new" || listingData.condition === "like new"
+                          : listingData.condition === "like_new" ||
+                              listingData.condition === "like new"
                             ? "bg-sky-500/15 text-sky-300 border border-sky-500/25"
                             : "bg-slate-700/40 text-slate-400 border border-slate-700")
                     }
@@ -714,14 +727,15 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <ShieldCheck
-                        size={11}
-                        className="text-indigo-400"
-                      />
+                      <ShieldCheck size={11} className="text-indigo-400" />
                       <span className="text-sm font-bold text-white">
-                        {listingData.seller_trust ?? listingData.trust_score ?? 50}
+                        {listingData.seller_trust ??
+                          listingData.trust_score ??
+                          50}
                       </span>
-                      <span className="text-xs text-slate-500">Trust Score</span>
+                      <span className="text-xs text-slate-500">
+                        Trust Score
+                      </span>
                       {listingData.response_rate && (
                         <>
                           <span className="text-slate-700">·</span>

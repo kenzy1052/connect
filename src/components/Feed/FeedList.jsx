@@ -1,6 +1,7 @@
 import { FeedCard } from "./FeedCard";
 import { FeedCardSkeleton } from "./FeedCardSkeleton";
 import { EmptyState } from "./EmptyState";
+import { Search, Bookmark, Package } from "lucide-react";
 
 export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
   if (loading) {
@@ -17,7 +18,7 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
     if (type === "favorites") {
       return (
         <EmptyState
-          icon="🔖"
+          icon={<Bookmark size={48} strokeWidth={1.5} />}
           title="No saved listings yet"
           description="Tap the heart on any listing to save it here."
           buttonText="Browse Feed"
@@ -29,7 +30,7 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
     if (type === "profile") {
       return (
         <EmptyState
-          icon="📦"
+          icon={<Package size={48} strokeWidth={1.5} />}
           title="No active listings"
           description="Your shop is looking a bit empty. Turn your clutter into cash!"
           buttonText="Post a listing"
@@ -40,7 +41,7 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
 
     return (
       <EmptyState
-        icon="🔍"
+        icon={<Search size={48} strokeWidth={1.5} />}
         title="No listings found"
         description="Try adjusting your filters or search terms to find what you're looking for."
         buttonText="Back to Feed"

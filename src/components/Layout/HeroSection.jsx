@@ -197,7 +197,7 @@ export default function HeroSection() {
         {/* ── RIGHT — gallery, desktop only ── */}
         <motion.div
           style={{ x: visualX, y: visualY }}
-          className="hidden lg:flex items-center justify-center w-full"
+          className="hidden lg:flex items-center justify-end w-full"
         >
           <HeroGallery slides={INITIAL_SLIDES} interval={AUTO_INTERVAL} />
         </motion.div>
@@ -308,10 +308,7 @@ function HeroGallery({ slides = INITIAL_SLIDES, interval = AUTO_INTERVAL }) {
   }, [interval, thumbs.length, paused]);
 
   return (
-    <div
-      className="flex flex-col gap-2.5 w-full select-none"
-      style={{ maxWidth: 520 }}
-    >
+    <div className="flex flex-col gap-2.5 w-full select-none">
       {/* ── MAIN DISPLAY ── */}
       <div
         className="relative w-full overflow-hidden rounded-2xl border border-app bg-surface-2"

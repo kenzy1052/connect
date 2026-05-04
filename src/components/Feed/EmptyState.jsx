@@ -8,9 +8,14 @@ export function EmptyState({
   buttonTo,
   onButtonClick,
 }) {
+  const isReactElement = typeof icon === "object" && icon !== null;
   return (
     <div className="flex flex-col items-center justify-center py-32 px-6 text-center">
-      <div className="text-5xl mb-5 drop-shadow-sm">{icon}</div>
+      <div
+        className={`mb-5 drop-shadow-sm ${isReactElement ? "text-slate-400" : "text-5xl"}`}
+      >
+        {icon}
+      </div>
       <h3 className="text-white font-black text-xl mb-2">{title}</h3>
       <p className="text-slate-500 text-sm mb-8 max-w-sm mx-auto">
         {description}

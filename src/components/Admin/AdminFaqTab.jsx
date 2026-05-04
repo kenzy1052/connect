@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { Loader2, Trash2, CheckCircle2 } from "lucide-react";
 import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../context/AuthContext";
 import ConfirmModal from "../UI/ConfirmModal";
 export default function AdminFaqTab() {
   const toast = useToast();
+  const { user } = useAuth();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
@@ -42,7 +44,13 @@ export default function AdminFaqTab() {
     setSubmitting(true);
     const { error } = await supabase
       .from("faq_questions")
-      .update({ answer: answer.trim() })
+      .update({
+        answer: answer.trim(),
+        status: "answered",
+        is_published: true,
+        answered_at: new Date().toISOString(),
+        answered_by: user?.id ?? null,
+      })
       .eq("id", selectedQuestion.id);
 
     if (error) {

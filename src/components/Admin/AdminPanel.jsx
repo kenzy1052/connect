@@ -4,6 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import ListingDetail from "../Feed/ListingDetail";
 import AdminFaqTab from "./AdminFaqTab";
 import ConfirmModal from "../UI/ConfirmModal";
+import { Shield } from "lucide-react";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -324,8 +325,8 @@ export default function AdminPanel() {
     return (
       <div className="pt-4 max-w-5xl mx-auto animate-in fade-in duration-300">
         <div className="mb-4 flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800">
-          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-            🛡️ Admin Inspector
+          <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+            <Shield size={12} className="text-indigo-400" /> Admin Inspector
           </span>
           <button
             onClick={() => setSelectedListing(null)}
@@ -356,7 +357,9 @@ export default function AdminPanel() {
       {/* HEADER */}
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white">🛡️ Admin Panel</h1>
+          <h1 className="text-2xl font-black text-white flex items-center gap-2">
+            <Shield size={22} className="text-indigo-400" /> Admin Panel
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             Moderate reports · Manage users · Audit actions
           </p>
