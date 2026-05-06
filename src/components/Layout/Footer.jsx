@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
 import { Mail, Phone, ShieldCheck, MessageCircle } from "lucide-react";
 import { FiInstagram } from "react-icons/fi";
+import Logo from "./Logo";
 
 const SUPPORT_PHONE = "0546 945 944";
 const SUPPORT_PHONE_TEL = "+233546945944";
-const BUSINESS_EMAIL = "hello@campusconnect.com";
+const BUSINESS_EMAIL = "@campusconnect.com";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -18,13 +19,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10 mb-10">
           {/* About */}
           <div className="sm:col-span-2 md:col-span-1">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md gradient-brand grid place-items-center">
-                <span className="text-[hsl(var(--primary-fg))] font-black text-xs">
-                  C
-                </span>
+            <Link to="/" className="flex items-center gap-2 shrink-0 group">
+              <div className="w-8 h-8 rounded-md gradient-brand grid place-items-center shadow-[0_4px_14px_hsl(var(--primary)/0.4)]">
+                <Logo className="w-5 h-5 text-[hsl(var(--primary-fg))]" />
               </div>
-              <span className="text-base font-bold tracking-tight text-main">
+              <span className="hidden sm:inline text-base font-bold tracking-tight text-main">
                 CampusConnect
               </span>
             </Link>

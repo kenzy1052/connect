@@ -36,7 +36,6 @@ const ALL_TABS = [...TABS, ...DANGER];
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * AccountIndex — shown in the desktop content area when no tab is selected.
- * On mobile this is never rendered — AccountLayout shows the tab list instead.
  * ───────────────────────────────────────────────────────────────────────────── */
 export function AccountIndex() {
   const navigate = useNavigate();
@@ -67,17 +66,6 @@ export function AccountIndex() {
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * AccountLayout
- *
- * DESKTOP (md+):
- *   - html scroll is locked so the window never scrolls.
- *   - Left sidebar (272px): header (sticky) + nav (scrolls) + footer (sticky).
- *   - Right content area (flex-1): scrolls independently from the sidebar.
- *   Both panels share exactly calc(100vh - 7rem) — the remaining viewport
- *   after the sticky top nav (h-16 TopNav + h-11 SecondaryBar = ~7rem).
- *
- * MOBILE:
- *   - /account        → full-screen settings menu (list of tabs).
- *   - /account/*      → content page with a sticky "← Settings" back header.
  * ───────────────────────────────────────────────────────────────────────────── */
 export default function AccountLayout() {
   const { profile, user, logout } = useAuth();
@@ -106,11 +94,6 @@ export default function AccountLayout() {
 
   const currentTab = ALL_TABS.find((t) => location.pathname.startsWith(t.to));
 
-  /*
-   * Lock page scroll on desktop so both panels scroll independently.
-   * We inject a <style> tag scoped to md+ so mobile is unaffected.
-   * Cleaned up on unmount to restore normal scrolling everywhere else.
-   */
   useEffect(() => {
     const tag = document.createElement("style");
     tag.id = "account-layout-scroll-lock";
@@ -124,8 +107,8 @@ export default function AccountLayout() {
   }, []);
 
   const UserHeader = () => (
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-xl gradient-brand grid place-items-center text-[hsl(var(--primary-fg))] font-bold text-sm overflow-hidden shrink-0 shadow-sm">
+    <div className="flex items-center gap-3.5">
+      <div className="w-12 h-12 rounded-full gradient-brand flex items-center justify-center text-[hsl(var(--primary-fg))] font-bold text-sm overflow-hidden shrink-0 shadow-sm border-2 border-surface">
         {profile?.avatar_url ? (
           <img
             src={profile.avatar_url}
@@ -137,43 +120,32 @@ export default function AccountLayout() {
         )}
       </div>
       <div className="min-w-0">
-        <div className="text-sm font-semibold text-main truncate">
+        <div className="text-base font-bold text-main truncate leading-tight">
           {profile?.business_name || profile?.full_name || "You"}
         </div>
-        <div className="text-[11px] text-faint truncate">{user?.email}</div>
+        <div className="text-xs text-muted truncate mt-0.5">{user?.email}</div>
       </div>
     </div>
   );
 
   return (
-    /*
-     * Negative margins cancel MainApp's px-4/py-5 (md: px-6/py-7) padding so
-     * we paint edge-to-edge inside the max-w-7xl container.
-     *
-     * On desktop the outer div is given a fixed height equal to the viewport
-     * minus the combined nav height (~7rem). Because html/body overflow is
-     * locked above, the window never scrolls — only the inner panels do.
-     */
     <div
       className="-mx-4 sm:-mx-6 -my-5 md:-my-7 flex flex-col md:flex-row bg-app"
       style={{
-        // Mobile: auto height (normal page scroll)
-        // Desktop: locked to remaining viewport after nav
         minHeight: "calc(100vh - 7rem)",
       }}
     >
       {/* ════════════════════════════════════════════════════════════════
-          DESKTOP SIDEBAR — fixed height, independent scroll
+          DESKTOP SIDEBAR
       ══════════════════════════════════════════════════════════════════ */}
       <aside
         className="hidden md:flex flex-col shrink-0 bg-surface border-r border-app"
         style={{
           width: 272,
           height: "calc(100vh - 7rem)",
-          overflow: "hidden", // clips the flex column; inner nav scrolls
+          overflow: "hidden",
         }}
       >
-        {/* Sticky header */}
         <div className="shrink-0 px-5 pt-6 pb-4 border-b border-app">
           <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-3">
             My Account
@@ -181,7 +153,6 @@ export default function AccountLayout() {
           <UserHeader />
         </div>
 
-        {/* Independently scrollable nav */}
         <nav className="flex-1 overflow-y-auto py-3 flex flex-col gap-0.5 px-3">
           {TABS.map(({ to, label, icon: Icon }) => (
             <NavLink
@@ -209,7 +180,6 @@ export default function AccountLayout() {
           ))}
         </nav>
 
-        {/* Sticky footer — danger zone + logout */}
         <div className="shrink-0 border-t border-app px-3 py-3 flex flex-col gap-0.5">
           {DANGER.map(({ to, label, icon: Icon }) => (
             <NavLink
@@ -239,76 +209,105 @@ export default function AccountLayout() {
       </aside>
 
       {/* ════════════════════════════════════════════════════════════════
-          MOBILE — one panel shown at a time
+          MOBILE VIEW
       ══════════════════════════════════════════════════════════════════ */}
       <div className="md:hidden w-full">
         {isRootAccount ? (
-          /* ── Mobile: Settings tab list ── */
-          <div className="bg-app min-h-screen">
-            <div className="px-4 py-4 border-b border-app bg-surface">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-faint mb-3">
+          /* ── Mobile: Settings tab list (Modern Inset Layout) ── */
+          <div className="bg-app min-h-screen pb-24">
+            {/* Header Area */}
+            <div className="px-5 pt-8 pb-4">
+              <h1 className="text-2xl font-bold text-main tracking-tight">
                 Settings
-              </p>
-              <UserHeader />
+              </h1>
             </div>
 
-            <nav className="divide-y divide-app">
-              {TABS.map(({ to, label, icon: Icon }) => (
-                <button
-                  key={to}
-                  onClick={() => navigate(to)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-sm font-medium text-main hover:bg-surface-2 active:bg-surface-2 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} className="text-brand shrink-0" />
-                    {label}
-                  </div>
-                  <ChevronRight size={15} className="text-faint" />
-                </button>
-              ))}
-            </nav>
-
-            <div className="mt-2 border-t border-app divide-y divide-app">
-              {DANGER.map(({ to, label, icon: Icon }) => (
-                <button
-                  key={to}
-                  onClick={() => navigate(to)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-sm font-medium text-[hsl(var(--danger))] hover:bg-[hsl(var(--danger)/0.06)] transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} className="shrink-0" />
-                    {label}
-                  </div>
-                  <ChevronRight size={15} className="opacity-50" />
-                </button>
-              ))}
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-5 py-4 text-sm font-medium text-[hsl(var(--danger))] hover:bg-[hsl(var(--danger)/0.06)] transition-colors"
+            <div className="px-4 space-y-6">
+              {/* Profile Card */}
+              <div
+                className="bg-surface border border-app rounded-2xl p-4 shadow-sm flex items-center justify-between active:bg-surface-2 transition-colors cursor-pointer"
+                onClick={() => navigate("/account/profile")}
               >
-                <LogOut size={18} className="shrink-0" />
-                Log out
-              </button>
-            </div>
+                <UserHeader />
+                <ChevronRight size={18} className="text-faint" />
+              </div>
 
-            {/* Space for mobile nav bar */}
-            <div className="h-24" />
+              {/* Main Navigation Group */}
+              <nav className="bg-surface border border-app rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                {TABS.map(({ to, label, icon: Icon }, index) => (
+                  <button
+                    key={to}
+                    onClick={() => navigate(to)}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-2 transition-colors ${
+                      index !== TABS.length - 1 ? "border-b border-app" : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-brand-soft flex items-center justify-center shrink-0">
+                        <Icon size={16} className="text-brand" />
+                      </div>
+                      <span className="text-sm font-semibold text-main">
+                        {label}
+                      </span>
+                    </div>
+                    <ChevronRight size={16} className="text-faint" />
+                  </button>
+                ))}
+              </nav>
+
+              {/* Danger / Account Actions Group */}
+              <div className="bg-surface border border-app rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                {DANGER.map(({ to, label, icon: Icon }) => (
+                  <button
+                    key={to}
+                    onClick={() => navigate(to)}
+                    className="w-full flex items-center justify-between px-4 py-3.5 border-b border-app active:bg-[hsl(var(--danger)/0.06)] transition-colors group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-[hsl(var(--danger)/0.1)] flex items-center justify-center shrink-0">
+                        <Icon size={16} className="text-[hsl(var(--danger))]" />
+                      </div>
+                      <span className="text-sm font-semibold text-[hsl(var(--danger))]">
+                        {label}
+                      </span>
+                    </div>
+                    <ChevronRight
+                      size={16}
+                      className="opacity-50 text-[hsl(var(--danger))]"
+                    />
+                  </button>
+                ))}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-2 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-surface-2 flex items-center justify-center shrink-0">
+                      <LogOut size={16} className="text-muted" />
+                    </div>
+                    <span className="text-sm font-semibold text-muted">
+                      Log out
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           /* ── Mobile: Individual content page ── */
           <div className="bg-app min-h-screen">
-            <div className="flex items-center gap-2 px-4 h-12 border-b border-app bg-surface sticky top-0 z-10">
+            <div className="flex items-center gap-2 px-4 h-14 border-b border-app bg-surface/90 backdrop-blur-md sticky top-0 z-10 shadow-sm">
               <button
                 onClick={() => navigate("/account")}
-                className="inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-main transition-colors py-1 pr-2"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-brand hover:opacity-80 transition-opacity py-2 pr-2"
               >
-                <ChevronLeft size={16} />
+                <ChevronLeft size={18} />
                 Settings
               </button>
               {currentTab && (
                 <>
                   <span className="text-faint text-sm">/</span>
-                  <span className="text-sm font-medium text-main truncate">
+                  <span className="text-sm font-semibold text-main truncate">
                     {currentTab.label}
                   </span>
                 </>
@@ -322,7 +321,7 @@ export default function AccountLayout() {
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
-          DESKTOP content area — fixed height, independent scroll
+          DESKTOP CONTENT AREA
       ══════════════════════════════════════════════════════════════════ */}
       <main
         className="hidden md:flex flex-col flex-1 bg-app"
@@ -331,7 +330,6 @@ export default function AccountLayout() {
           overflow: "hidden",
         }}
       >
-        {/* Breadcrumb strip */}
         {currentTab && (
           <div className="shrink-0 px-8 pt-8 pb-2 border-b border-app">
             <div className="flex items-center gap-2">
@@ -343,7 +341,6 @@ export default function AccountLayout() {
           </div>
         )}
 
-        {/* Independently scrollable content */}
         <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-10 pt-6">
           <div className="max-w-3xl mx-auto">
             <Outlet />
