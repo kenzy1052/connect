@@ -3,8 +3,9 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 import ListingDetail from "../Feed/ListingDetail";
 import AdminFaqTab from "./AdminFaqTab";
+import AdminAdsTab from "./AdminAdsTab";
 import ConfirmModal from "../UI/ConfirmModal";
-import { Shield } from "lucide-react";
+import { Shield, Megaphone } from "lucide-react";
 
 export default function AdminPanel() {
   const { user } = useAuth();
@@ -307,6 +308,34 @@ export default function AdminPanel() {
     await fetchAll();
   };
 
+  const toggleRole = (u) => {
+    const newRole = u.role === "admin" ? "user" : "admin";
+    setConfirm({
+      title: newRole === "admin" ? "Grant Admin Access?" : "Revoke Admin Access?",
+      message:
+        newRole === "admin"
+          ? `Give ${u.business_name || u.full_name} full admin privileges? They can moderate content, manage users and ads.`
+          : `Remove admin privileges from ${u.business_name || u.full_name}? They will become a regular user.`,
+      variant: newRole === "admin" ? "warning" : "danger",
+      confirmLabel: newRole === "admin" ? "✓ Grant Admin" : "Revoke Admin",
+      onConfirm: () => _doToggleRole(u.id, newRole),
+    });
+  };
+
+  const _doToggleRole = async (userId, newRole) => {
+    if (userId === user?.id) { alert("You cannot change your own role."); return; }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role: newRole })
+      .eq("id", userId);
+    if (error) {
+      alert("Failed: " + error.message + "\n\nTip: If RLS is blocking this, run the admin_set_user_role() RPC from the SQL migration file.");
+      return;
+    }
+    await logAdminAction(newRole === "admin" ? "GRANT_ADMIN" : "REVOKE_ADMIN", "user", userId);
+    await fetchAll();
+  };
+
   const toggleSuspension = async (u) => {
     const { error } = await supabase.rpc("admin_toggle_suspension", {
       p_user_id: u.id,
@@ -446,6 +475,7 @@ export default function AdminPanel() {
           { id: "reports", label: `Pending (${reports.length})` },
           { id: "resolved", label: `History (${resolvedReports.length})` },
           { id: "users", label: `Users (${users.length})` },
+          { id: "ads", label: "Ads" },
           { id: "faq", label: "FAQ Inbox" },
           { id: "audit", label: "Audit Log" },
         ].map((t) => (
@@ -717,6 +747,17 @@ export default function AdminPanel() {
                 </div>
                 <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                   <button
+                    onClick={() => toggleRole(u)}
+                    className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg border transition-all ${
+                      u.role === "admin"
+                        ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/20"
+                        : "bg-slate-800 text-slate-400 hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/20 border-slate-700"
+                    }`}
+                    title={u.role === "admin" ? "Revoke admin" : "Make admin"}
+                  >
+                    {u.role === "admin" ? "⭐ Admin" : "Make Admin"}
+                  </button>
+                  <button
                     onClick={() => resetTrust(u.id, name)}
                     className="px-3 py-1.5 text-[10px] font-black uppercase bg-slate-800 hover:bg-amber-500/10 text-slate-400 hover:text-amber-400 rounded-lg border border-slate-700 hover:border-amber-500/20 transition-all"
                   >
@@ -738,6 +779,9 @@ export default function AdminPanel() {
           })}
         </div>
       )}
+
+      {/* ADS */}
+      {tab === "ads" && <AdminAdsTab />}
 
       {/* FAQ INBOX */}
       {tab === "faq" && <AdminFaqTab />}

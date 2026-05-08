@@ -23,9 +23,7 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-md gradient-brand grid place-items-center shadow-[0_4px_14px_hsl(var(--primary)/0.4)]">
                 <Logo className="w-5 h-5 text-[hsl(var(--primary-fg))]" />
               </div>
-              <span className="hidden sm:inline text-base font-bold tracking-tight text-main">
-                CampusConnect
-              </span>
+              <span>CampusConnect</span>
             </Link>
             <p className="text-xs text-muted mt-3 leading-relaxed max-w-xs">
               The marketplace built for the University of Cape Coast. Buy, sell,

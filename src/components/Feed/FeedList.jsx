@@ -1,7 +1,11 @@
 import { FeedCard } from "./FeedCard";
 import { FeedCardSkeleton } from "./FeedCardSkeleton";
 import { EmptyState } from "./EmptyState";
+import AdBanner from "./AdBanner";
 import { Search, Bookmark, Package } from "lucide-react";
+
+// Inject an ad banner every N listing cards (full-width, inside the grid)
+const AD_EVERY_N = 8;
 
 export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
   if (loading) {
@@ -26,7 +30,6 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
         />
       );
     }
-
     if (type === "profile") {
       return (
         <EmptyState
@@ -38,7 +41,6 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
         />
       );
     }
-
     return (
       <EmptyState
         icon={<Search size={48} strokeWidth={1.5} />}
@@ -50,15 +52,31 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
     );
   }
 
+  // Build the render list interleaving full-width ad slots
+  const renderItems = [];
+  listings.forEach((item, index) => {
+    renderItems.push(
+      <FeedCard
+        key={item.id}
+        item={item}
+        onClick={() => onListingClick(item)}
+      />
+    );
+
+    // After every AD_EVERY_N items, inject a full-width ad
+    if ((index + 1) % AD_EVERY_N === 0) {
+      const adSlotNum = Math.floor((index + 1) / AD_EVERY_N);
+      renderItems.push(
+        <div key={`ad-slot-${adSlotNum}`} className="col-span-full">
+          <AdBanner slot={`feed-mid-${adSlotNum}`} compact />
+        </div>
+      );
+    }
+  });
+
   return (
     <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-stretch auto-rows-fr">
-      {listings.map((item) => (
-        <FeedCard
-          key={item.id}
-          item={item}
-          onClick={() => onListingClick(item)}
-        />
-      ))}
+      {renderItems}
     </div>
   );
 }
