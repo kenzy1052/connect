@@ -1,135 +1,184 @@
-import { useEffect, useState } from "react";
-import { supabase } from "../../lib/supabaseClient";
-import { ExternalLink, X } from "lucide-react";
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Search, ShoppingBag, Sparkles, ArrowRight, Zap } from "lucide-react";
 
-export default function AdBanner({ slot = "floating-overlay" }) {
-  const [ad, setAd] = useState(null);
-  const [dismissed, setDismissed] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+const QUICK_CATEGORIES = [
+  { label: "Electronics", slug: "electronics", emoji: "💻" },
+  { label: "Books", slug: "books-study", emoji: "📚" },
+  { label: "Clothing", slug: "clothing", emoji: "👕" },
+  { label: "Tutoring", slug: "tutoring", emoji: "🎓" },
+  { label: "Food & Snacks", slug: "food-snacks", emoji: "🍱" },
+  { label: "Tech Services", slug: "tech-services", emoji: "🔧" },
+  { label: "Beauty", slug: "beauty-personal", emoji: "✨" },
+  { label: "Laundry", slug: "laundry", emoji: "🫧" },
+];
 
-  useEffect(() => {
-    // For testing, I've disabled the sessionStorage check so you see it every refresh
-    // const key = `ad_dismissed_${slot}`;
-    // if (sessionStorage.getItem(key)) return;
+export default function HeroSection() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
 
-    const fetchAd = async () => {
-      try {
-        const now = new Date().toISOString();
-        const { data, error } = await supabase
-          .from("ads")
-          .select("*")
-          .eq("is_active", true)
-          .or(`slot_key.eq.${slot},slot_key.is.null`)
-          .or(`ends_at.is.null,ends_at.gt.${now}`)
-          .lte("starts_at", now)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (!error && data) setAd(data);
-      } catch (err) {
-        console.error("Ad fetch failed", err);
-      } finally {
-        setLoaded(true);
-      }
-    };
-
-    fetchAd();
-  }, [slot]);
-
-  const handleDismiss = (e) => {
-    e.stopPropagation();
-    setDismissed(true);
-    sessionStorage.setItem(`ad_dismissed_${slot}`, "1");
-    if (ad?.id) {
-      supabase
-        .from("ad_events")
-        .insert({ ad_id: ad.id, slot_key: slot, kind: "dismiss" });
-    }
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (q) navigate(`/search?q=${encodeURIComponent(q)}`);
+    else navigate("/browse");
   };
-
-  const handleClick = () => {
-    if (ad?.id) {
-      supabase
-        .from("ad_events")
-        .insert({ ad_id: ad.id, slot_key: slot, kind: "click" });
-    }
-  };
-
-  if (!loaded || dismissed || !ad) return null;
-
-  const isExternal = ad.cta_url?.startsWith("http");
 
   return (
-    <div className="fixed bottom-6 right-0 left-0 md:left-auto md:right-6 z-[9999] px-4 md:px-0 animate-in fade-in slide-in-from-bottom-10 duration-700">
-      <div className="relative w-full md:w-[380px] group bg-surface/80 backdrop-blur-xl border border-app shadow-2xl rounded-2xl overflow-hidden hover:border-brand/50 transition-all duration-300">
-        {/* Dismiss Button - Top Right */}
-        <button
-          onClick={handleDismiss}
-          className="absolute top-2 right-2 z-20 p-1.5 rounded-full bg-black/40 text-white/80 hover:bg-black/60 hover:text-white transition-all"
+    <section
+      className="relative w-full overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(135deg, hsl(var(--primary) / 0.18) 0%, hsl(var(--bg)) 50%, hsl(var(--primary-2, var(--primary)) / 0.12) 100%)",
+        borderBottom: "1px solid hsl(var(--border))",
+      }}
+    >
+      {/* Grid pattern overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(hsl(var(--text)) 1px, transparent 1px),
+                            linear-gradient(90deg, hsl(var(--text)) 1px, transparent 1px)`,
+          backgroundSize: "44px 44px",
+          opacity: 0.03,
+        }}
+      />
+
+      {/* Glow blobs */}
+      <div
+        className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full pointer-events-none blur-3xl"
+        style={{ background: "hsl(var(--primary) / 0.15)" }}
+      />
+      <div
+        className="absolute -bottom-20 right-0 w-[400px] h-[400px] rounded-full pointer-events-none blur-3xl"
+        style={{ background: "hsl(var(--primary-2, var(--primary)) / 0.10)" }}
+      />
+
+      {/* ── Content ────────────────────────────────────────────────────────── */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-14 md:py-20 flex flex-col items-center text-center gap-6">
+        {/* Badge */}
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-widest"
+          style={{
+            background: "hsl(var(--primary) / 0.12)",
+            border: "1px solid hsl(var(--primary) / 0.25)",
+            color: "hsl(var(--primary))",
+          }}
         >
-          <X size={16} />
-        </button>
+          <Sparkles size={11} />
+          <span>UCC Student Marketplace</span>
+        </div>
 
-        {/* Media Section - Full Width, 16:9 Aspect Ratio */}
-        <div className="relative w-full aspect-video bg-black overflow-hidden">
-          {ad.video_url ? (
-            <video
-              src={ad.video_url}
-              autoPlay
-              muted
-              loop
-              playsInline
-              className="w-full h-full object-cover"
-            />
-          ) : ad.image_url ? (
-            <img
-              src={ad.image_url}
-              alt=""
-              className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand/20 to-surface">
-              <span className="text-brand font-bold opacity-40 uppercase tracking-widest">
-                Premium Ad
-              </span>
-            </div>
-          )}
+        {/* Headline */}
+        <div>
+          <h1
+            className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.05]"
+            style={{ color: "hsl(var(--text))" }}
+          >
+            Buy &amp; Sell
+            <br />
+            <span style={{ color: "hsl(var(--primary))" }}>on Campus</span>
+          </h1>
+          <p
+            className="text-base md:text-lg mt-4 max-w-md mx-auto leading-relaxed"
+            style={{ color: "hsl(var(--text-muted))" }}
+          >
+            The fastest way to trade with fellow UCC students — phones, books,
+            services &amp; more.
+          </p>
+        </div>
 
-          {/* Badge */}
-          <div className="absolute bottom-2 left-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-white bg-black/50 backdrop-blur-md px-2 py-1 rounded-md border border-white/10">
-              Sponsored
-            </span>
+        {/* ── Search bar ─────────────────────────────────────────────────── */}
+        <form
+          onSubmit={handleSearch}
+          className="w-full max-w-2xl flex items-center gap-2 rounded-2xl p-1.5 shadow-2xl"
+          style={{
+            background: "hsl(var(--surface))",
+            border: "1px solid hsl(var(--border))",
+          }}
+        >
+          <Search
+            size={17}
+            className="ml-2.5 shrink-0"
+            style={{ color: "hsl(var(--text-faint))" }}
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search listings, services, or sellers…"
+            className="flex-1 bg-transparent text-sm outline-none py-2.5 pr-1"
+            style={{ color: "hsl(var(--text))" }}
+          />
+          <button
+            type="submit"
+            className="shrink-0 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.97] hover:brightness-110"
+            style={{
+              background: "hsl(var(--primary))",
+              color: "hsl(var(--primary-fg, 255 255 255))",
+            }}
+          >
+            <span className="hidden sm:inline">Search</span>
+            <ArrowRight size={14} />
+          </button>
+        </form>
+
+        {/* ── CTAs ───────────────────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 flex-wrap justify-center">
+          <Link
+            to="/browse"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.97] hover:brightness-110"
+            style={{
+              background: "hsl(var(--primary))",
+              color: "hsl(var(--primary-fg, 255 255 255))",
+            }}
+          >
+            <ShoppingBag size={14} />
+            Browse Listings
+          </Link>
+          <Link
+            to="/sell"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold border transition-all active:scale-[0.97]"
+            style={{
+              background: "hsl(var(--surface))",
+              border: "1px solid hsl(var(--border))",
+              color: "hsl(var(--text-muted))",
+            }}
+          >
+            <Zap size={14} />
+            Start Selling
+          </Link>
+        </div>
+
+        {/* ── Quick categories ────────────────────────────────────────────── */}
+        <div className="w-full pt-1">
+          <p
+            className="text-[10px] font-black uppercase tracking-widest mb-3"
+            style={{ color: "hsl(var(--text-faint))" }}
+          >
+            Popular categories
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {QUICK_CATEGORIES.map((c) => (
+              <Link
+                key={c.slug}
+                to={`/browse?category=${c.slug}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-[0.97]"
+                style={{
+                  background: "hsl(var(--surface-2))",
+                  border: "1px solid hsl(var(--border))",
+                  color: "hsl(var(--text-muted))",
+                }}
+              >
+                <span role="img" aria-hidden="true">
+                  {c.emoji}
+                </span>
+                {c.label}
+              </Link>
+            ))}
           </div>
         </div>
-
-        {/* Content Section */}
-        <div className="p-4">
-          <h3 className="text-base font-bold text-main line-clamp-1 group-hover:text-brand transition-colors">
-            {ad.title}
-          </h3>
-          {ad.body && (
-            <p className="text-sm text-muted mt-1 line-clamp-2 leading-relaxed">
-              {ad.body}
-            </p>
-          )}
-
-          {/* Action Button */}
-          {ad.cta_url && (
-            <a
-              href={ad.cta_url}
-              target={isExternal ? "_blank" : "_self"}
-              rel={isExternal ? "noopener noreferrer" : undefined}
-              onClick={handleClick}
-              className="mt-4 flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-brand text-white text-sm font-bold rounded-xl hover:brightness-110 active:scale-[0.98] transition-all"
-            >
-              Learn More
-              {isExternal && <ExternalLink size={14} />}
-            </a>
-          )}
-        </div>
       </div>
-    </div>
+    </section>
   );
 }

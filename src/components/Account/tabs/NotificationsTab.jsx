@@ -1,281 +1,167 @@
-// src/components/Account/tabs/NotificationsTab.jsx
-import { useContext } from "react";
-import {
-  Bell,
-  BellOff,
-  Mail,
-  Tag,
-  Megaphone,
-  ShieldAlert,
-  CheckCircle2,
-  RefreshCw,
-} from "lucide-react";
+import { useState } from "react";
+import { Bell, BellOff, Mail, Tag, Megaphone, ShieldAlert, CheckCircle2, RefreshCw, Smartphone } from "lucide-react";
 import { useNotifications } from "../../../hooks/useNotifications";
 
 export default function NotificationsTab() {
-  const { permission, prefs, loading, requestPush, updatePref } =
-    useNotifications();
+  const { permission, prefs, loading, requestPush, updatePref } = useNotifications();
+  const [requesting, setRequesting] = useState(false);
+  const [pushError, setPushError] = useState(null);
 
-  if (loading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
-        <RefreshCw size={22} style={{ animation: "spin 1s linear infinite", opacity: 0.5 }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
-  }
+  const handleEnablePush = async () => {
+    setRequesting(true);
+    setPushError(null);
+    const result = await requestPush();
+    if (result?.error) setPushError(result.error);
+    setRequesting(false);
+  };
+
+  if (loading) return (
+    <div className="flex justify-center py-12">
+      <RefreshCw size={22} className="text-faint animate-spin" />
+    </div>
+  );
 
   return (
-    <div className="notifications-tab">
-      {/* ── Push Permission Banner ── */}
-      <PushBanner permission={permission} onRequest={requestPush} />
+    <div className="space-y-1 max-w-lg">
 
-      {/* ── Push Toggles ── */}
-      <Section
-        icon={<Bell size={16} />}
-        title="Push Notifications"
-        description="In-browser alerts when you're on CampusConnect"
-      >
+      {/* Push permission banner */}
+      {permission === "granted" ? (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 mb-4">
+          <CheckCircle2 size={18} className="shrink-0" />
+          <span className="text-sm font-semibold">Push notifications are enabled on this device</span>
+        </div>
+      ) : permission === "denied" ? (
+        <div className="flex items-start gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 mb-4">
+          <ShieldAlert size={18} className="shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold">Notifications are blocked</p>
+            <p className="text-red-500 dark:text-red-400 opacity-80 mt-0.5">
+              To enable: go to your browser's <strong>Site Settings → Notifications</strong> and allow this site.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="border border-app rounded-2xl bg-surface overflow-hidden mb-4">
+          <div className="flex items-start gap-3 px-4 py-4">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0">
+              <BellOff size={17} className="text-indigo-500 dark:text-indigo-400" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-main text-sm">Enable push notifications</p>
+              <p className="text-xs text-muted mt-0.5">Get alerts for messages and deals even when the app is closed</p>
+            </div>
+          </div>
+
+          {/* Mobile-friendly tip */}
+          <div className="mx-4 mb-3 flex items-start gap-2 px-3 py-2.5 bg-amber-500/8 border border-amber-500/20 rounded-xl">
+            <Smartphone size={13} className="text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed">
+              On Android, close any floating chat bubbles or screen overlay apps before tapping Enable — Chrome blocks permission prompts when overlays are active.
+            </p>
+          </div>
+
+          {pushError && (
+            <p className="mx-4 mb-3 text-xs text-red-500 dark:text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+              {pushError.includes("overlay") || pushError.includes("bubble") || pushError.includes("permission")
+                ? "Chrome blocked this — close any floating overlays from other apps, then try again."
+                : pushError}
+            </p>
+          )}
+
+          <div className="px-4 pb-4">
+            <button
+              onClick={handleEnablePush}
+              disabled={requesting}
+              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20"
+            >
+              {requesting
+                ? <><RefreshCw size={15} className="animate-spin" /> Requesting…</>
+                : <><Bell size={15} /> Enable Notifications</>}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Push toggles */}
+      <Section icon={Bell} title="Push Notifications" description="In-app alerts on this device">
         <Toggle
-          icon={<Tag size={15} />}
+          icon={Tag}
           label="New listings"
-          description="When relevant listings are posted"
+          description="When relevant listings are posted in categories you browse"
           checked={prefs?.push_listings ?? true}
           disabled={permission !== "granted"}
-          onChange={(v) => updatePref("push_listings", v)}
+          onChange={v => updatePref("push_listings", v)}
+        />
+        <Toggle
+          icon={Megaphone}
+          label="Messages"
+          description="When someone sends you a message"
+          checked={prefs?.push_messages ?? true}
+          disabled={permission !== "granted"}
+          onChange={v => updatePref("push_messages", v)}
         />
       </Section>
 
       <Divider />
 
-      {/* ── Email Toggles ── */}
-      <Section
-        icon={<Mail size={16} />}
-        title="Email Notifications"
-        description="Sent to your registered email address"
-      >
+      {/* Email toggles */}
+      <Section icon={Mail} title="Email Notifications" description="Sent to your registered email address">
         <Toggle
-          icon={<Tag size={15} />}
-          label="Offers & deals"
+          icon={Tag}
+          label="Offers and deals"
           description="Platform-wide promotions and featured listings"
           checked={prefs?.email_offers ?? true}
-          onChange={(v) => updatePref("email_offers", v)}
+          onChange={v => updatePref("email_offers", v)}
         />
         <Toggle
-          icon={<Megaphone size={15} />}
+          icon={Megaphone}
           label="Marketing emails"
           description="Product updates, tips and newsletters"
           checked={prefs?.email_marketing ?? false}
-          onChange={(v) => updatePref("email_marketing", v)}
+          onChange={v => updatePref("email_marketing", v)}
         />
       </Section>
-
-      <style>{STYLES}</style>
     </div>
   );
 }
 
-function PushBanner({ permission, onRequest }) {
-  if (permission === "granted") {
-    return (
-      <div className="push-banner push-banner--granted">
-        <CheckCircle2 size={17} />
-        <span>Push notifications are enabled</span>
-      </div>
-    );
-  }
-  if (permission === "denied") {
-    return (
-      <div className="push-banner push-banner--denied">
-        <ShieldAlert size={17} />
-        <span>
-          Notifications are blocked in your browser settings. Enable them in{" "}
-          <strong>Site Settings → Notifications</strong> to use push alerts.
-        </span>
-      </div>
-    );
-  }
+function Section({ icon: Icon, title, description, children }) {
   return (
-    <div className="push-banner push-banner--default">
-      <div className="push-banner__left">
-        <BellOff size={17} />
+    <div className="py-2">
+      <div className="flex items-center gap-2.5 px-1 pb-3">
+        <Icon size={15} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
         <div>
-          <p className="push-banner__title">Enable push notifications</p>
-          <p className="push-banner__sub">Get alerts without being on the app</p>
+          <p className="text-sm font-bold text-main">{title}</p>
+          <p className="text-xs text-muted">{description}</p>
         </div>
       </div>
-      <button className="push-banner__btn" onClick={onRequest}>Enable</button>
+      <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
 
-function Section({ icon, title, description, children }) {
+function Toggle({ icon: Icon, label, description, checked, onChange, disabled }) {
   return (
-    <div className="notif-section">
-      <div className="notif-section__header">
-        <span className="notif-section__icon">{icon}</span>
-        <div>
-          <p className="notif-section__title">{title}</p>
-          <p className="notif-section__desc">{description}</p>
-        </div>
-      </div>
-      <div className="notif-section__rows">{children}</div>
-    </div>
-  );
-}
-
-function Toggle({ icon, label, description, checked, onChange, disabled }) {
-  return (
-    <label className={`notif-toggle${disabled ? " notif-toggle--disabled" : ""}`}>
-      <span className="notif-toggle__icon">{icon}</span>
-      <span className="notif-toggle__text">
-        <span className="notif-toggle__label">{label}</span>
-        <span className="notif-toggle__desc">{description}</span>
+    <label className={`flex items-center gap-3 px-3 py-3.5 rounded-xl cursor-pointer transition-colors hover:bg-surface-2 ${disabled ? "opacity-40 pointer-events-none" : ""}`}>
+      <Icon size={15} className="text-muted shrink-0" />
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-medium text-main">{label}</span>
+        <span className="block text-xs text-muted mt-0.5">{description}</span>
       </span>
       <button
         role="switch"
         aria-checked={checked}
         disabled={disabled}
-        onClick={() => !disabled && onChange(!checked)}
-        className={`notif-switch${checked ? " notif-switch--on" : ""}`}
+        onClick={e => { e.preventDefault(); if (!disabled) onChange(!checked); }}
+        className={`relative w-11 h-6 rounded-full shrink-0 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${checked ? "bg-indigo-600" : "bg-gray-200 dark:bg-slate-700"}`}
         aria-label={label}
       >
-        <span className="notif-switch__thumb" />
+        <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${checked ? "translate-x-6" : "translate-x-1"}`} />
       </button>
     </label>
   );
 }
 
 function Divider() {
-  return <div className="notif-divider" />;
+  return <div className="h-px bg-app my-2" />;
 }
-
-// NOTE: All hardcoded blue (#6366f1) replaced with hsl(var(--primary))
-// so the tab adapts to any selected theme automatically.
-const STYLES = `
-  .notifications-tab {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    max-width: 520px;
-  }
-
-  /* ── Push banner ── */
-  .push-banner {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 13px 16px;
-    border-radius: 12px;
-    font-size: 13.5px;
-    font-weight: 500;
-    margin-bottom: 8px;
-    border: 1px solid transparent;
-  }
-  .push-banner--granted {
-    background: color-mix(in srgb, var(--color-success, #4ade80) 12%, transparent);
-    color: var(--color-success, #4ade80);
-    border-color: color-mix(in srgb, var(--color-success, #4ade80) 30%, transparent);
-  }
-  .push-banner--denied {
-    background: color-mix(in srgb, var(--color-error, #f87171) 10%, transparent);
-    color: var(--color-text-secondary, rgba(255,255,255,0.7));
-    border-color: color-mix(in srgb, var(--color-error, #f87171) 25%, transparent);
-    line-height: 1.5;
-  }
-  .push-banner--denied strong { color: var(--color-text, #fff); }
-  .push-banner--default {
-    background: var(--color-surface-raised, rgba(255,255,255,0.06));
-    border-color: var(--color-border, rgba(255,255,255,0.1));
-    color: var(--color-text, #fff);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .push-banner__left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--color-text-secondary, rgba(255,255,255,0.6));
-  }
-  .push-banner__title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--color-text, #fff); }
-  .push-banner__sub { margin: 2px 0 0; font-size: 12px; color: var(--color-text-secondary, rgba(255,255,255,0.5)); }
-  .push-banner__btn {
-    padding: 7px 18px;
-    border-radius: 8px;
-    border: none;
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-fg, 0 0% 100%));
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: filter 0.15s, transform 0.1s;
-    flex-shrink: 0;
-  }
-  .push-banner__btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .push-banner__btn:active { transform: translateY(0); }
-
-  /* ── Section ── */
-  .notif-section { padding: 8px 0; }
-  .notif-section__header { display: flex; align-items: flex-start; gap: 10px; padding: 4px 2px 12px; }
-  .notif-section__icon {
-    color: hsl(var(--primary));
-    margin-top: 2px;
-    flex-shrink: 0;
-  }
-  .notif-section__title { margin: 0; font-size: 14px; font-weight: 700; color: var(--color-text, #fff); }
-  .notif-section__desc { margin: 2px 0 0; font-size: 12px; color: var(--color-text-secondary, rgba(255,255,255,0.5)); }
-  .notif-section__rows { display: flex; flex-direction: column; gap: 2px; }
-
-  /* ── Toggle row ── */
-  .notif-toggle {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .notif-toggle:hover { background: var(--color-surface-hover, rgba(255,255,255,0.04)); }
-  .notif-toggle--disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
-  .notif-toggle__icon { color: var(--color-text-secondary, rgba(255,255,255,0.45)); flex-shrink: 0; }
-  .notif-toggle__text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-  .notif-toggle__label { font-size: 13.5px; font-weight: 500; color: var(--color-text, #fff); }
-  .notif-toggle__desc { font-size: 12px; color: var(--color-text-secondary, rgba(255,255,255,0.45)); }
-
-  /* ── Switch ── */
-  .notif-switch {
-    position: relative;
-    width: 42px;
-    height: 24px;
-    border-radius: 100px;
-    border: none;
-    background: var(--color-surface-muted, rgba(255,255,255,0.15));
-    cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
-    padding: 0;
-  }
-  .notif-switch--on { background: hsl(var(--primary)); }
-  .notif-switch:disabled { cursor: not-allowed; }
-  .notif-switch__thumb {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: #fff;
-    transition: transform 0.2s cubic-bezier(0.34,1.4,0.64,1);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  }
-  .notif-switch--on .notif-switch__thumb { transform: translateX(18px); }
-
-  /* ── Divider ── */
-  .notif-divider {
-    height: 1px;
-    background: var(--color-border, rgba(255,255,255,0.08));
-    margin: 8px 0;
-  }
-`;
