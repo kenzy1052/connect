@@ -69,6 +69,30 @@ export default function SaveButton({
     if (error) {
       console.error("Error toggling save:", error.message);
       setSaved(!next); // rollback on error
+    } else if (next) {
+      // Fire-and-forget: notify the seller someone saved their listing
+      (async () => {
+        try {
+          const { data: l } = await supabase
+            .from("discovery_feed")
+            .select("seller_id, title")
+            .eq("id", listingId)
+            .single();
+          if (l?.seller_id && l.seller_id !== user.id) {
+            await supabase.functions.invoke("send-push", {
+              body: {
+                user_id: l.seller_id,
+                title: "Someone saved your listing 🔖",
+                body: `"${l.title}" was saved by a buyer`,
+                url: `/listing/${listingId}`,
+                tag: `save-${listingId}`,
+              },
+            });
+          }
+        } catch {
+          /* ignore — never block UI */
+        }
+      })();
     }
     setBusy(false);
   };

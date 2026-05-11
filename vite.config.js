@@ -1,63 +1,44 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
-import { VitePWA } from "vite-plugin-pwa";
 
-// https://vitejs.dev/config/
+/**
+ * VitePWA is intentionally removed.
+ *
+ * We use a hand-written service worker at /public/sw.js which handles:
+ *   - Web Push background notifications (RFC 8291 aes128gcm)
+ *   - Notification click routing
+ *   - Basic offline shell cache
+ *
+ * VitePWA's "generateSW" mode produces its own /sw.js via Workbox,
+ * overwriting our custom file and breaking the push handler.
+ * The PWA install criteria (manifest + SW + HTTPS) are met without
+ * the plugin; all manifest metadata lives in /public/manifest.json
+ * and /index.html meta tags.
+ *
+ * If you want Workbox pre-caching in the future, switch to the
+ * "injectManifest" strategy in VitePWA and add:
+ *   precacheAndRoute(self.__WB_MANIFEST || [])
+ * to the top of public/sw.js.
+ */
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-    VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "placeholder.png"],
-      manifest: {
-        name: "CampusConnect",
-        short_name: "CampusConnect",
-        description: "UCC's safest student marketplace",
-        theme_color: "#6366f1",
-        background_color: "#020617",
-        display: "standalone",
-        start_url: "/",
-        icons: [
-          {
-            src: "/icon-192.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "/icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-          },
-          {
-            src: "/icon-512-maskable.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
-      },
-      workbox: {
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) =>
-              url.origin.includes("supabase.co") &&
-              url.pathname.includes("/storage/"),
-            handler: "CacheFirst",
-            options: {
-              cacheName: "listing-images",
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
-              },
-            },
-          },
-        ],
-      },
-    }),
-  ],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
+  },
+  build: {
+    // Bump chunk size warning — router lazy splits keep initial bundle lean
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        // Manual code-splitting for vendor chunks
+        manualChunks: {
+          "vendor-react": ["react", "react-dom"],
+          "vendor-router": ["react-router-dom"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-ui": ["lucide-react", "framer-motion"],
+        },
+      },
+    },
   },
 });

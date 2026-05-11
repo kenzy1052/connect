@@ -427,6 +427,34 @@ export function CreateListing({ user, onCancel, onSuccess }) {
       try {
         sessionStorage.removeItem("cc.create.draft");
       } catch {}
+
+      // Fire-and-forget: notify admins of new listing (for moderation queue awareness)
+      (async () => {
+        try {
+          const { data: admins } = await supabase
+            .from("profiles")
+            .select("id")
+            .eq("role", "admin");
+          if (admins?.length) {
+            await Promise.allSettled(
+              admins.map((a) =>
+                supabase.functions.invoke("send-push", {
+                  body: {
+                    user_id: a.id,
+                    title: "New listing posted 📦",
+                    body: `${form.title} — GHS ${form.price || "—"}`,
+                    url: "/admin",
+                    tag: `new-listing-${createdListingId}`,
+                  },
+                }),
+              ),
+            );
+          }
+        } catch {
+          /* never block publish */
+        }
+      })();
+
       onSuccess();
     } catch (err) {
       console.error("CREATE LISTING ERROR:", err);

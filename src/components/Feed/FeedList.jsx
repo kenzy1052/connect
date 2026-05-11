@@ -37,7 +37,7 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
           title="No active listings"
           description="Your shop is looking a bit empty. Turn your clutter into cash!"
           buttonText="Post a listing"
-          buttonTo="/sell"
+          buttonTo="/create"
         />
       );
     }
@@ -60,7 +60,7 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
         key={item.id}
         item={item}
         onClick={() => onListingClick(item)}
-      />
+      />,
     );
 
     // After every AD_EVERY_N items, inject a full-width ad
@@ -69,7 +69,7 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
       renderItems.push(
         <div key={`ad-slot-${adSlotNum}`} className="col-span-full">
           <AdBanner slot={`feed-mid-${adSlotNum}`} compact />
-        </div>
+        </div>,
       );
     }
   });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDiscoveryFeed } from "./hooks/useDiscoveryFeed";
+import { trackListingView } from "./hooks/useRecommendations";
 import { FeedFilters } from "./components/Feed/FeedFilters";
 import { useAuth } from "./context/AuthContext";
 import NavShell from "./components/Layout/NavShell";
@@ -10,6 +11,8 @@ import HeroSection from "./components/Layout/HeroSection";
 import Footer from "./components/Layout/Footer";
 import OfflineBanner from "./components/Layout/OfflineBanner";
 import AdBanner from "./components/Feed/AdBanner";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import RecommendedSection from "./components/Feed/RecommendedSection";
 
 export default function MainApp() {
   const { user, profile } = useAuth();
@@ -48,29 +51,44 @@ export default function MainApp() {
 
   const [dismissedError, setDismissedError] = useState(false);
 
-  // Reset dismiss when error message changes
   useEffect(() => {
     setDismissedError(false);
   }, [error]);
 
-  // Read ?category= from URL and pre-populate the category filter
+  /**
+   * Read ?category= from the URL.
+   *
+   * The hero (and any external link) may use a category SLUG (e.g. "electronics").
+   * The feed query needs the UUID (e.g. "242a1f6b-...").
+   *
+   * This effect translates slug → UUID using the already-fetched categories list.
+   * It also accepts a UUID directly (for backward compat with filter chips).
+   * It only runs once categories are loaded to avoid a redundant re-fetch.
+   */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const urlCat = params.get("category");
-    if (urlCat) {
-      setCategoryId(urlCat);
-    } else {
-      // Clear category when navigating away from a category URL
+
+    if (!urlCat) {
       setCategoryId("");
+      return;
     }
+
+    // If categories haven't loaded yet, wait — this effect re-runs when they do
+    if (categories.length === 0) return;
+
+    // Try slug first, then id (UUIDs come from the filter panel)
+    const found = categories.find((c) => c.slug === urlCat || c.id === urlCat);
+
+    // If we found a match use the UUID; if not (e.g. unknown slug) clear the filter
+    setCategoryId(found ? found.id : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.search]);
+  }, [location.search, categories]);
 
   const observerTarget = useRef(null);
 
   useEffect(() => {
     const el = observerTarget.current;
-    // On the home page we cap to 30 items — pagination only on /browse.
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && !loading && hasMore && isBrowse) {
@@ -84,10 +102,12 @@ export default function MainApp() {
   }, [loading, hasMore, loadMore, isBrowse]);
 
   const openDetailView = (listing) => {
+    // Track for personalized recommendations
+    trackListingView(listing);
     navigate(`/listing/${listing.id}`, { state: { listing } });
   };
 
-  // Cap home feed
+  // Cap home feed to 30 items — pagination only on /browse
   const visibleListings = isHome ? listings.slice(0, 30) : listings;
 
   return (
@@ -99,7 +119,7 @@ export default function MainApp() {
 
       <OfflineBanner />
 
-      {/* Hero is full-bleed and 100vh on the home page only */}
+      {/* Hero — home page only */}
       {isHome && <HeroSection />}
 
       <main className="flex-1 w-full">
@@ -124,8 +144,11 @@ export default function MainApp() {
             />
           )}
 
-          {/* Ad banner — only shown on feed pages */}
+          {/* Ad banner — feed pages only */}
           {isFeedView && <AdBanner slot="feed-top" />}
+
+          {/* Personalized recommendations — home only, hidden until user has browsed */}
+          {isHome && <RecommendedSection onListingClick={openDetailView} />}
 
           {error && !dismissedError && (
             <div
@@ -193,6 +216,9 @@ export default function MainApp() {
       </main>
 
       <Footer />
+
+      {/* PWA install prompt — floats above mobile nav */}
+      <PWAInstallPrompt />
     </div>
   );
 }
