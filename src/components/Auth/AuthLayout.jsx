@@ -1,5 +1,6 @@
-// src/components/Auth/AuthLayout.jsx
 import React from "react";
+import { Link } from "react-router-dom";
+import Logo from "../Layout/Logo";
 
 // Default to the video in your public folder
 const DEFAULT_VIDEO = "/auth.mp4";
@@ -36,39 +37,19 @@ export default function AuthLayout({
         }}
       />
 
-      {/* Bottom darken for caption legibility */}
-      <div
-        className="absolute inset-x-0 bottom-0 h-1/2 z-[2]"
-        style={{
-          background:
-            "linear-gradient(to top, hsl(var(--background) / 0.8), transparent)",
-        }}
-      />
-
-      {/* Brand mark top-left */}
-      <div className="absolute left-10 top-10 z-10 flex items-center gap-3">
-        <div className="grid h-11 w-11 place-items-center rounded-md gradient-brand shadow-[0_18px_42px_hsl(var(--primary)/0.4)]">
-          <span className="text-base font-black text-[hsl(var(--primary-fg))]">
-            C
+      {/* Brand mark top-left - Updated to match your branding snippet */}
+      <div className="absolute left-10 top-10 z-10">
+        <Link to="/" className="flex items-center gap-2 shrink-0 group">
+          <div className="w-8 h-8 rounded-md gradient-brand grid place-items-center shadow-[0_4px_14px_hsl(var(--primary)/0.4)]">
+            <Logo className="w-5 h-5 text-[hsl(var(--primary-fg))]" />
+          </div>
+          <span className="text-base font-bold tracking-tight text-white drop-shadow-sm">
+            CampusConnect
           </span>
-        </div>
-        <span className="text-lg font-black tracking-tight text-white drop-shadow">
-          CampusConnect
-        </span>
+        </Link>
       </div>
 
-      {/* Editorial caption bottom-left */}
-      <div className="absolute bottom-10 left-10 right-10 z-10 max-w-md">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/70">
-          UCC Student Marketplace
-        </p>
-        <h2 className="mt-3 text-3xl font-black leading-tight text-white drop-shadow">
-          Where campus life meets a smarter way to buy & sell.
-        </h2>
-        <p className="mt-3 text-sm text-white/80">
-          Built exclusively for the University of Cape Coast community.
-        </p>
-      </div>
+      {/* Note: Editorial caption and bottom-darken overlay removed to keep the video clean */}
     </div>
   );
 
