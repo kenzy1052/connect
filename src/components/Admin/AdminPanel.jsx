@@ -141,14 +141,12 @@ export default function AdminPanel() {
   };
 
   const logAdminAction = async (action, targetType, targetId) => {
-    await supabase
-      .from("admin_audit_logs")
-      .insert({
-        admin_id: user?.id ?? null,
-        action,
-        target_type: targetType,
-        target_id: targetId,
-      });
+    await supabase.from("admin_audit_logs").insert({
+      admin_id: user?.id ?? null,
+      action,
+      target_type: targetType,
+      target_id: targetId,
+    });
   };
 
   const dismissReport = async (report) => {
@@ -648,10 +646,10 @@ export default function AdminPanel() {
                       key={listing?.id || Math.random()}
                       className="bg-surface border border-app rounded-2xl overflow-hidden"
                     >
-                      {/* Report header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-app bg-red-500/5">
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
+                      {/* ── Listing identity row ── */}
+                      <div className="flex items-start gap-3 px-5 py-4 border-b border-app bg-red-500/5">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className="flex items-center gap-1.5 text-[10px] font-black uppercase text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg">
                               <AlertTriangle size={10} /> {reportList.length}{" "}
                               report{reportList.length !== 1 ? "s" : ""}
@@ -662,63 +660,28 @@ export default function AdminPanel() {
                               </span>
                             )}
                           </div>
-                          <p className="font-bold text-main text-base mt-1.5">
+                          <p className="font-bold text-main text-base leading-snug">
                             "{listing?.title || "Deleted listing"}"
                           </p>
                         </div>
-
-                        <div className="flex flex-wrap gap-2 shrink-0">
-                          {listing?.id && (
-                            <ActionBtn
-                              onClick={() => handleViewListing(listing.id)}
-                              variant="indigo"
-                              icon={Eye}
-                              label="Inspect"
-                              disabled={busy}
-                            />
-                          )}
-                          {listing?.id &&
-                            (listing.is_hidden ? (
-                              <ActionBtn
-                                onClick={() => toggleHide(listing.id, false)}
-                                variant="green"
-                                icon={Eye}
-                                label="Unhide"
-                                disabled={busy}
-                              />
-                            ) : (
-                              <ActionBtn
-                                onClick={() => toggleHide(listing.id, true)}
-                                variant="amber"
-                                icon={EyeOff}
-                                label="Hide"
-                                disabled={busy}
-                              />
-                            ))}
+                        {listing?.id && (
                           <ActionBtn
-                            onClick={() => dismissAllReports(listing.id)}
-                            variant="ghost"
-                            label="Dismiss All"
+                            onClick={() => handleViewListing(listing.id)}
+                            variant="indigo"
+                            icon={Eye}
+                            label="Inspect"
                             disabled={busy}
                           />
-                          <ActionBtn
-                            onClick={() => confirmListingPenalty(listing.id)}
-                            variant="orange"
-                            label="−10 Trust"
-                            disabled={busy}
-                          />
-                          <ActionBtn
-                            onClick={() => handleDeleteListing(listing.id)}
-                            variant="red"
-                            icon={Trash2}
-                            label="Delete"
-                            disabled={busy}
-                          />
-                        </div>
+                        )}
                       </div>
 
-                      {/* Individual reports */}
+                      {/* ── Reporters list ── */}
                       <div className="divide-y divide-app">
+                        <div className="px-5 py-2 bg-surface-2/40">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-faint">
+                            Reporters ({reportList.length})
+                          </p>
+                        </div>
                         {reportList.map((r) => (
                           <div
                             key={r.id}
@@ -752,6 +715,50 @@ export default function AdminPanel() {
                             </div>
                           </div>
                         ))}
+                      </div>
+
+                      {/* ── Listing-level actions (clearly separated at the bottom) ── */}
+                      <div className="px-5 py-3 border-t-2 border-app bg-surface-2/30 flex flex-wrap items-center gap-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-faint mr-1">
+                          Listing actions:
+                        </span>
+                        {listing?.id &&
+                          (listing.is_hidden ? (
+                            <ActionBtn
+                              onClick={() => toggleHide(listing.id, false)}
+                              variant="green"
+                              icon={Eye}
+                              label="Unhide Listing"
+                              disabled={busy}
+                            />
+                          ) : (
+                            <ActionBtn
+                              onClick={() => toggleHide(listing.id, true)}
+                              variant="amber"
+                              icon={EyeOff}
+                              label="Hide Listing"
+                              disabled={busy}
+                            />
+                          ))}
+                        <ActionBtn
+                          onClick={() => dismissAllReports(listing.id)}
+                          variant="ghost"
+                          label="Dismiss All Reports"
+                          disabled={busy}
+                        />
+                        <ActionBtn
+                          onClick={() => confirmListingPenalty(listing.id)}
+                          variant="orange"
+                          label="Penalise Seller (−10)"
+                          disabled={busy}
+                        />
+                        <ActionBtn
+                          onClick={() => handleDeleteListing(listing.id)}
+                          variant="red"
+                          icon={Trash2}
+                          label="Delete Listing"
+                          disabled={busy}
+                        />
                       </div>
                     </div>
                   );

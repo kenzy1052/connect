@@ -25,7 +25,7 @@ export default function SecurityTab() {
   const strength = (() => {
     if (!password) return 0;
     let s = 0;
-    if (password.length >= 6) s++;
+    if (password.length >= 8) s++;
     if (password.length >= 10) s++;
     if (/[A-Z]/.test(password) && /[a-z]/.test(password)) s++;
     if (/\d/.test(password) && /[^A-Za-z0-9]/.test(password)) s++;
@@ -48,8 +48,8 @@ export default function SecurityTab() {
     if (!currentPassword)
       return toast.error("Please enter your current password.");
     if (!password) return toast.error("Please enter a new password.");
-    if (password.length < 6)
-      return toast.error("New password must be at least 6 characters.");
+    if (password.length < 8)
+      return toast.error("New password must be at least 8 characters.");
     if (password !== confirmPassword)
       return toast.error("New passwords do not match.");
     if (currentPassword === password)
@@ -121,7 +121,7 @@ export default function SecurityTab() {
               label="New password"
               value={password}
               onChange={setPassword}
-              placeholder="At least 6 characters"
+              placeholder="At least 8 characters"
               icon={KeyRound}
             />
 

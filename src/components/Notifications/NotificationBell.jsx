@@ -66,6 +66,7 @@ export default function NotificationBell() {
       .from("notifications")
       .select("id, type, title, body, link, is_read, created_at")
       .eq("user_id", user.id)
+      .eq("is_read", false)
       .order("created_at", { ascending: false })
       .limit(12);
 
@@ -90,11 +91,10 @@ export default function NotificationBell() {
 
   const handleItemClick = async (n) => {
     setOpen(false);
+    // Remove from list immediately — only unread items are shown,
+    // so marking it read means it should disappear.
+    setItems((prev) => prev.filter((x) => x.id !== n.id));
     if (!n.is_read) {
-      // Optimistic
-      setItems((prev) =>
-        prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)),
-      );
       supabase
         .from("notifications")
         .update({ is_read: true })
@@ -105,7 +105,7 @@ export default function NotificationBell() {
   };
 
   const markAllRead = async () => {
-    setItems((prev) => prev.map((x) => ({ ...x, is_read: true })));
+    setItems([]); // list is unread-only, so clearing = all gone
     await supabase
       .from("notifications")
       .update({ is_read: true })
