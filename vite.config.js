@@ -9,17 +9,6 @@ import tailwindcss from "@tailwindcss/vite";
  *   - Web Push background notifications (RFC 8291 aes128gcm)
  *   - Notification click routing
  *   - Basic offline shell cache
- *
- * VitePWA's "generateSW" mode produces its own /sw.js via Workbox,
- * overwriting our custom file and breaking the push handler.
- * The PWA install criteria (manifest + SW + HTTPS) are met without
- * the plugin; all manifest metadata lives in /public/manifest.json
- * and /index.html meta tags.
- *
- * If you want Workbox pre-caching in the future, switch to the
- * "injectManifest" strategy in VitePWA and add:
- *   precacheAndRoute(self.__WB_MANIFEST || [])
- * to the top of public/sw.js.
  */
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -27,16 +16,27 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    // Bump chunk size warning — router lazy splits keep initial bundle lean
     chunkSizeWarningLimit: 800,
     rollupOptions: {
       output: {
-        // Manual code-splitting for vendor chunks
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-router": ["react-router-dom"],
-          "vendor-supabase": ["@supabase/supabase-js"],
-          "vendor-ui": ["lucide-react", "framer-motion"],
+        // Manual code-splitting logic for Vite 8 / Rolldown
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("react-dom") || id.includes("react/")) {
+              return "vendor-react";
+            }
+            if (id.includes("react-router-dom")) {
+              return "vendor-router";
+            }
+            if (id.includes("@supabase")) {
+              return "vendor-supabase";
+            }
+            if (id.includes("lucide-react") || id.includes("framer-motion")) {
+              return "vendor-ui";
+            }
+            // Fallback for other dependencies
+            return "vendor";
+          }
         },
       },
     },
