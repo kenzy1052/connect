@@ -214,13 +214,40 @@ function ListingDetailRoute() {
 
   useEffect(() => {
     if (listing && listing.id === id) return;
+    // Try discovery_feed first (enriched); fall back to raw listings table
+    // so shared links always resolve even if listing is hidden/inactive
     supabase
       .from("discovery_feed")
       .select("*")
       .eq("id", id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => {
-        if (data) setListing(data);
+        if (data) {
+          setListing(data);
+        } else {
+          supabase
+            .from("listings")
+            .select(
+              `*, seller_profile:profiles!seller_id(full_name,business_name,trust_score,avatar_url), category:categories(name), listing_images(image_url,position,is_cover)`,
+            )
+            .eq("id", id)
+            .maybeSingle()
+            .then(({ data: rawData }) => {
+              if (rawData) {
+                setListing({
+                  ...rawData,
+                  listing_type: rawData.type,
+                  seller_name:
+                    rawData.seller_profile?.business_name ||
+                    rawData.seller_profile?.full_name,
+                  seller_trust: rawData.seller_profile?.trust_score,
+                  trust_score: rawData.seller_profile?.trust_score,
+                  seller_avatar_url: rawData.seller_profile?.avatar_url,
+                  category_name: rawData.category?.name,
+                });
+              }
+            });
+        }
       });
   }, [id, listing]);
 

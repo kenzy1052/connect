@@ -119,28 +119,30 @@ export function useNotifications() {
           });
         }
 
-        if (sub) {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (user) {
-            const p256dh = sub.getKey("p256dh");
-            const auth = sub.getKey("auth");
-            await supabase.from("push_subscriptions").upsert(
-              {
-                user_id: user.id,
-                endpoint: sub.endpoint,
-                p256dh: p256dh
-                  ? btoa(String.fromCharCode(...new Uint8Array(p256dh)))
-                  : "",
-                auth: auth
-                  ? btoa(String.fromCharCode(...new Uint8Array(auth)))
-                  : "",
-              },
-              { onConflict: "endpoint" },
-            );
-          }
-        }
+            if (sub) {
+              const {
+                data: { user },
+              } = await supabase.auth.getUser();
+              if (user) {
+                const p256dh = sub.getKey("p256dh");
+                const auth = sub.getKey("auth");
+                // Must be base64url (not regular base64) — Edge Function uses fromB64u()
+                const toBase64Url = (buf) =>
+                  btoa(String.fromCharCode(...new Uint8Array(buf)))
+                    .replace(/\+/g, "-")
+                    .replace(/\//g, "_")
+                    .replace(/=/g, "");
+                await supabase.from("push_subscriptions").upsert(
+                  {
+                    user_id: user.id,
+                    endpoint: sub.endpoint,
+                    p256dh: p256dh ? toBase64Url(p256dh) : "",
+                    auth: auth ? toBase64Url(auth) : "",
+                  },
+                  { onConflict: "endpoint" },
+                );
+              }
+            }
 
         reg.showNotification("CampusConnect", {
           body: "You'll now receive alerts even when the app is closed! 🎉",

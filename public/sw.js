@@ -1,5 +1,5 @@
 /* CampusConnect Service Worker — handles Web Push + offline cache */
-const CACHE_NAME = "cc-v1";
+const CACHE_NAME = "cc-v2";
 const OFFLINE_URLS = ["/", "/index.html"];
 
 // ── Install: pre-cache shell ────────────────────────────────────────────────
@@ -10,7 +10,7 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 
-// ── Activate: claim clients ─────────────────────────────────────────────────
+// ── Activate: claim clients & notify them to reload ─────────────────────────
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches
@@ -18,14 +18,42 @@ self.addEventListener("activate", (e) => {
       .then((keys) =>
         Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
       )
+      .then(() => self.clients.claim())
+      .then(() => {
+        // Tell all open tabs that a new version is active → they can reload
+        return self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      })
+      .then((clients) => {
+        clients.forEach((client) => client.postMessage({ type: "NEW_CONTENT" }));
+      })
   );
-  self.clients.claim();
 });
 
 // ── Fetch: network-first, fallback to cache ─────────────────────────────────
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   if (!e.request.url.startsWith(self.location.origin)) return;
+
+  // For navigation requests (page loads), always try network first
+  // This ensures shared links always get fresh content
+  if (e.request.mode === "navigate") {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() =>
+          caches.match(e.request).then(
+            (cached) => cached || caches.match("/index.html")
+          )
+        )
+    );
+    return;
+  }
 
   e.respondWith(
     fetch(e.request)

@@ -27,6 +27,7 @@ import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import "yet-another-react-lightbox/styles.css";
+import AdminListingActions from "../Admin/AdminListingActions";
 
 /* Brand icon not in lucide-react — inline SVG */
 function WhatsAppIcon({ size = 18, className = "" }) {
@@ -77,7 +78,7 @@ function DetailSkeleton() {
 }
 
 export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const requireAuth = useRequireAuth();
   const [listingData, setListingData] = useState(listing);
   const [images, setImages] = useState([]);
@@ -854,6 +855,18 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
                   />
                 </button>
               </div>
+            )}
+            {profile?.role === "admin" && (
+              <AdminListingActions
+                listing={listingData}
+                onDeleted={() => onBack?.()}
+                onSuspendToggled={(suspended) =>
+                  setListingData((prev) => ({
+                    ...prev,
+                    is_suspended: suspended,
+                  }))
+                }
+              />
             )}
           </div>
         </div>
