@@ -4,7 +4,6 @@ import { supabase } from "../lib/supabaseClient";
 const ITEMS_PER_PAGE = 10;
 
 // ── Fuzzy / typo-tolerant search term expander ──────────────────────────────
-// "phan" → adds "phone"; "labtop" → adds "laptop"; etc.
 const KNOWN_MISSPELLINGS = {
   phan: "phone", fon: "phone", fone: "phone", phon: "phone",
   labtop: "laptop", laptp: "laptop", laptoop: "laptop",
@@ -47,16 +46,13 @@ function generateSearchVariants(query) {
   if (!q) return [q];
   const variants = new Set([q]);
 
-  // Known misspellings → correct word
   if (KNOWN_MISSPELLINGS[q]) variants.add(KNOWN_MISSPELLINGS[q]);
 
-  // Phonetic substitutions
   for (const [from, to] of PHONETIC_SUBS) {
     const v = q.replace(from, to);
     if (v !== q && v.length >= 2) variants.add(v);
   }
 
-  // Prefix search: first 60% of a 4+ char term catches trailing-char typos
   if (q.length >= 4) {
     variants.add(q.substring(0, Math.ceil(q.length * 0.6)));
   }
@@ -65,25 +61,25 @@ function generateSearchVariants(query) {
 }
 
 export function useDiscoveryFeed() {
-  const [filter, setFilter] = useState("all");
-  const [categoryId, setCategoryId] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [filter, setFilter]           = useState("all");
+  const [categoryId, setCategoryId]   = useState("");
+  const [searchTerm, setSearchTerm]   = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [categories, setCategories] = useState([]);
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [categories, setCategories]   = useState([]);
+  const [listings, setListings]       = useState([]);
+  const [loading, setLoading]         = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [hasMore, setHasMore] = useState(true);
-  const [cursor, setCursor] = useState(null);
-  const [resetKey, setResetKey] = useState(0);
+  const [error, setError]             = useState(null);
+  const [hasMore, setHasMore]         = useState(true);
+  const [cursor, setCursor]           = useState(null);
+  const [resetKey, setResetKey]       = useState(0);
 
   const [minPrice, setMinPrice] = useState(null);
   const [maxPrice, setMaxPrice] = useState(null);
-  const [sortBy, setSortBy] = useState("best");
+  const [sortBy, setSortBy]     = useState("best");
 
-  const requestIdRef = useRef(0);
-  const listingsCountRef = useRef(0);
+  const requestIdRef      = useRef(0);
+  const listingsCountRef  = useRef(0);
 
   // ── Categories ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -125,7 +121,6 @@ export function useDiscoveryFeed() {
           const offset = reset ? 0 : listingsCountRef.current;
           const terms = generateSearchVariants(cleanQ);
 
-          // Build OR conditions across title + description for all variants
           const orParts = terms.flatMap((t) => [
             `title.ilike.%${t}%`,
             `description.ilike.%${t}%`,
@@ -140,7 +135,7 @@ export function useDiscoveryFeed() {
             .or(orParts.join(","));
 
           if (filter !== "all") q = q.eq("listing_type", filter);
-          if (categoryId) q = q.eq("category_id", categoryId);
+          if (categoryId)       q = q.eq("category_id", categoryId);
           if (minPrice != null) q = q.gte("price", minPrice);
           if (maxPrice != null) q = q.lte("price", maxPrice);
 
@@ -150,10 +145,10 @@ export function useDiscoveryFeed() {
             .range(offset, offset + ITEMS_PER_PAGE - 1);
 
           const res = await q;
-          data = res.data;
+          data  = res.data;
           error = res.error;
         } else {
-          // ── BROWSE PATH (unchanged — keyset/offset) ────────────────────
+          // ── BROWSE PATH ────────────────────────────────────────────────
           let query = supabase
             .from("discovery_feed")
             .select("*")
@@ -180,7 +175,7 @@ export function useDiscoveryFeed() {
           }
 
           if (filter !== "all") query = query.eq("listing_type", filter);
-          if (categoryId) query = query.eq("category_id", categoryId);
+          if (categoryId)       query = query.eq("category_id", categoryId);
 
           query = query.limit(ITEMS_PER_PAGE);
 
@@ -193,7 +188,7 @@ export function useDiscoveryFeed() {
           }
 
           const res = await query;
-          data = res.data;
+          data  = res.data;
           error = res.error;
         }
 
@@ -207,7 +202,7 @@ export function useDiscoveryFeed() {
         }
 
         setListings((prev) => {
-          const ids = new Set(prev.map((i) => i.id));
+          const ids  = new Set(prev.map((i) => i.id));
           const next = reset ? data : [...prev, ...data.filter((d) => !ids.has(d.id))];
           listingsCountRef.current = next.length;
           return next;
@@ -244,7 +239,58 @@ export function useDiscoveryFeed() {
   }, [filter, categoryId, debouncedSearch, minPrice, maxPrice, sortBy, resetKey]);
 
   const loadMore = () => { if (!loading && hasMore) fetchListings(false, cursor); };
-  const refetch = useCallback(() => setResetKey((k) => k + 1), []);
+  const refetch  = useCallback(() => setResetKey((k) => k + 1), []);
+
+  // ── Realtime: prepend new listings as they're posted ───────────────────
+  // Subscribes to INSERT events on the `listings` table. When a new listing
+  // is published, we fetch its full `discovery_feed` row (which has all
+  // computed columns like visibility_score) and prepend it to the list so
+  // buyers see it instantly without refreshing the page.
+  //
+  // IMPORTANT: We remove any stale channel with the same name before
+  // subscribing. React StrictMode mounts effects twice in development;
+  // Supabase reuses channels by name, so without this cleanup the second
+  // mount tries to call .on() on an already-subscribed channel and throws.
+  useEffect(() => {
+    const CHANNEL_NAME = "feed-new-listings";
+    const stale = supabase
+      .getChannels()
+      .find((ch) => ch.topic === `realtime:${CHANNEL_NAME}`);
+    if (stale) supabase.removeChannel(stale);
+
+    const channel = supabase
+      .channel(CHANNEL_NAME)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "listings" },
+        async (payload) => {
+          // Short delay so DB triggers (is_active, visibility_score) finish
+          await new Promise((r) => setTimeout(r, 1500));
+
+          const { data } = await supabase
+            .from("discovery_feed")
+            .select("*")
+            .eq("id", payload.new.id)
+            .eq("is_active", true)
+            .eq("is_hidden", false)
+            .eq("is_deleted", false)
+            .maybeSingle();
+
+          if (data) {
+            setListings((prev) => {
+              if (prev.some((l) => l.id === data.id)) return prev;
+              listingsCountRef.current = prev.length + 1;
+              return [data, ...prev];
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []); // runs once — stable channel, uses functional state updates
 
   return {
     listings, categories, loading, isInitialLoading, error, hasMore, loadMore, refetch,

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Trash2, ShieldOff, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Trash2, ShieldOff, ShieldCheck, AlertTriangle, EyeOff, Eye } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import { useToast } from "../../context/ToastContext";
 import ConfirmModal from "../UI/ConfirmModal";
@@ -7,16 +7,13 @@ import ConfirmModal from "../UI/ConfirmModal";
 /**
  * AdminListingActions — shown ONLY for admins inside ListingDetail.
  *
- * Usage in ListingDetail.jsx (see INSTRUCTIONS.md for exact placement):
- *
+ * Usage in ListingDetail.jsx:
  *   import AdminListingActions from "../Admin/AdminListingActions";
  *
- *   // Inside the component, change:
- *   const { user } = useAuth();
- *   // to:
+ *   // In the component, use:
  *   const { user, profile } = useAuth();
  *
- *   // Then after the Report block ({!isOwnListing && ...}), add:
+ *   // After the Report block ({!isOwnListing && ...}), add:
  *   {profile?.role === "admin" && (
  *     <AdminListingActions
  *       listing={listingData}
@@ -24,10 +21,13 @@ import ConfirmModal from "../UI/ConfirmModal";
  *       onSuspendToggled={(suspended) =>
  *         setListingData((prev) => ({ ...prev, is_suspended: suspended }))
  *       }
+ *       onHideToggled={(hidden) =>
+ *         setListingData((prev) => ({ ...prev, is_hidden: hidden }))
+ *       }
  *     />
  *   )}
  */
-export default function AdminListingActions({ listing, onDeleted, onSuspendToggled }) {
+export default function AdminListingActions({ listing, onDeleted, onSuspendToggled, onHideToggled }) {
   const toast = useToast();
   const [confirm, setConfirm] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -35,6 +35,7 @@ export default function AdminListingActions({ listing, onDeleted, onSuspendToggl
   if (!listing?.id) return null;
 
   const isSuspended = listing.is_suspended ?? false;
+  const isHidden    = listing.is_hidden    ?? false;
 
   const callRpc = async (fn, args, successMsg) => {
     setLoading(true);
@@ -48,20 +49,22 @@ export default function AdminListingActions({ listing, onDeleted, onSuspendToggl
     return true;
   };
 
+  // ── Delete ────────────────────────────────────────────────────────────────
   const doDelete = async () => {
     const ok = await callRpc(
       "admin_delete_listing",
       { p_listing_id: listing.id },
-      "Listing deleted. Seller has been notified."
+      "Listing deleted. Seller has been notified.",
     );
     if (ok) onDeleted?.();
   };
 
+  // ── Suspend / Unsuspend ───────────────────────────────────────────────────
   const doSuspend = async () => {
     const ok = await callRpc(
       "admin_suspend_listing",
       { p_listing_id: listing.id },
-      "Listing suspended. Seller has been notified."
+      "Listing suspended. Seller has been notified.",
     );
     if (ok) onSuspendToggled?.(true);
   };
@@ -70,9 +73,28 @@ export default function AdminListingActions({ listing, onDeleted, onSuspendToggl
     const ok = await callRpc(
       "admin_unsuspend_listing",
       { p_listing_id: listing.id },
-      "Listing reinstated."
+      "Listing reinstated.",
     );
     if (ok) onSuspendToggled?.(false);
+  };
+
+  // ── Hide / Unhide ─────────────────────────────────────────────────────────
+  const doHide = async () => {
+    const ok = await callRpc(
+      "admin_set_listing_visibility",
+      { p_listing_id: listing.id, p_hidden: true },
+      "Listing hidden from the marketplace.",
+    );
+    if (ok) onHideToggled?.(true);
+  };
+
+  const doUnhide = async () => {
+    const ok = await callRpc(
+      "admin_set_listing_visibility",
+      { p_listing_id: listing.id, p_hidden: false },
+      "Listing is now visible in the marketplace.",
+    );
+    if (ok) onHideToggled?.(false);
   };
 
   return (
@@ -86,7 +108,52 @@ export default function AdminListingActions({ listing, onDeleted, onSuspendToggl
           </p>
         </div>
 
-        {/* Suspend / Unsuspend */}
+        {/* ── Hide / Unhide ─────────────────────────────────────────── */}
+        {isHidden ? (
+          <button
+            onClick={() =>
+              setConfirm({
+                title: "Unhide listing?",
+                message: `Make "${listing.title}" visible again in the marketplace?`,
+                variant: "warning",
+                confirmLabel: "Unhide",
+                onConfirm: doUnhide,
+              })
+            }
+            disabled={loading}
+            className="flex items-center justify-center gap-2 w-full
+              bg-sky-600/10 hover:bg-sky-600/20 active:scale-[0.98]
+              border border-sky-500/25 text-sky-400
+              py-3 rounded-xl font-bold text-sm transition-all
+              disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Eye size={14} />
+            Unhide Listing
+          </button>
+        ) : (
+          <button
+            onClick={() =>
+              setConfirm({
+                title: "Hide listing?",
+                message: `Hide "${listing.title}" from the marketplace? It won't be visible to buyers but won't be deleted.`,
+                variant: "warning",
+                confirmLabel: "Hide",
+                onConfirm: doHide,
+              })
+            }
+            disabled={loading}
+            className="flex items-center justify-center gap-2 w-full
+              bg-slate-500/10 hover:bg-slate-500/20 active:scale-[0.98]
+              border border-slate-500/25 text-slate-400
+              py-3 rounded-xl font-bold text-sm transition-all
+              disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <EyeOff size={14} />
+            Hide Listing
+          </button>
+        )}
+
+        {/* ── Suspend / Unsuspend ───────────────────────────────────── */}
         {isSuspended ? (
           <button
             onClick={() =>
@@ -131,7 +198,7 @@ export default function AdminListingActions({ listing, onDeleted, onSuspendToggl
           </button>
         )}
 
-        {/* Delete */}
+        {/* ── Delete ───────────────────────────────────────────────── */}
         <button
           onClick={() =>
             setConfirm({

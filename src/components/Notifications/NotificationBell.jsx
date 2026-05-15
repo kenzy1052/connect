@@ -17,22 +17,23 @@ import { useAuth } from "../../context/AuthContext";
  * Source of truth: `notifications` table with shape:
  *   { id, user_id, type, title, body, link, is_read, created_at }
  *
- * If the table doesn't exist yet, we fail silently with an empty list.
- * Click an item -> mark as read + navigate to its link.
+ * Real-time: subscribes to Supabase Realtime INSERT events on the
+ * notifications table (filtered to the current user) so the badge
+ * count updates instantly without a page refresh.
  */
 
 const TYPE_META = {
-  faq: { Icon: MessageSquare, color: "text-brand" },
-  saved: { Icon: Heart, color: "text-rose-500" },
-  report: { Icon: ShieldAlert, color: "text-amber-400" },
-  admin: { Icon: Megaphone, color: "text-[hsl(var(--accent))]" },
-  default: { Icon: FileText, color: "text-muted" },
+  faq:     { Icon: MessageSquare, color: "text-brand" },
+  saved:   { Icon: Heart,         color: "text-rose-500" },
+  report:  { Icon: ShieldAlert,   color: "text-amber-400" },
+  admin:   { Icon: Megaphone,     color: "text-[hsl(var(--accent))]" },
+  default: { Icon: FileText,      color: "text-muted" },
 };
 
 function timeAgo(d) {
   const diff = (Date.now() - new Date(d).getTime()) / 1000;
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 60)    return "just now";
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
 }
@@ -40,14 +41,14 @@ function timeAgo(d) {
 export default function NotificationBell() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]   = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const wrapRef = useRef(null);
 
   const isAdmin = profile?.role === "admin";
 
-  // Close on outside click
+  // ── Close on outside click ─────────────────────────────────────────────
   useEffect(() => {
     if (!open) return;
     const onClick = (e) => {
@@ -58,7 +59,7 @@ export default function NotificationBell() {
     return () => window.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  // Fetch on mount + on open
+  // ── Fetch notifications ────────────────────────────────────────────────
   const fetchItems = async () => {
     if (!user) return;
     setLoading(true);
@@ -71,7 +72,6 @@ export default function NotificationBell() {
       .limit(12);
 
     if (error) {
-      // Table likely doesn't exist yet — just show empty.
       setItems([]);
     } else {
       setItems(data || []);
@@ -79,20 +79,66 @@ export default function NotificationBell() {
     setLoading(false);
   };
 
+  // Initial load + reload when dropdown opens
   useEffect(() => {
     fetchItems(); /* eslint-disable-next-line */
   }, [user]);
+
   useEffect(() => {
     if (open) fetchItems(); /* eslint-disable-next-line */
   }, [open]);
 
-  const unread = items.filter((i) => !i.is_read).length;
+  // ── Realtime: listen for new notifications ─────────────────────────────
+  // When a new row is inserted for this user, prepend it to the list so
+  // the bell badge updates immediately without any refresh.
+  //
+  // IMPORTANT: We remove any stale channel with the same name before
+  // subscribing. React StrictMode mounts effects twice in development;
+  // Supabase reuses channels by name, so without this cleanup the second
+  // mount tries to call .on() on an already-subscribed channel and throws.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const CHANNEL_NAME = `notif-bell:${user.id}`;
+
+    // Evict any stale channel left by a previous (StrictMode) mount
+    const stale = supabase
+      .getChannels()
+      .find((ch) => ch.topic === `realtime:${CHANNEL_NAME}`);
+    if (stale) supabase.removeChannel(stale);
+
+    const channel = supabase
+      .channel(CHANNEL_NAME)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newItem = payload.new;
+          setItems((prev) => {
+            if (prev.some((n) => n.id === newItem.id)) return prev;
+            return [newItem, ...prev].slice(0, 12);
+          });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  // ── Derived ────────────────────────────────────────────────────────────
+  const unread     = items.filter((i) => !i.is_read).length;
   const adminBadge = isAdmin ? unread : 0;
 
+  // ── Handlers ──────────────────────────────────────────────────────────
   const handleItemClick = async (n) => {
     setOpen(false);
-    // Remove from list immediately — only unread items are shown,
-    // so marking it read means it should disappear.
     setItems((prev) => prev.filter((x) => x.id !== n.id));
     if (!n.is_read) {
       supabase
@@ -105,7 +151,7 @@ export default function NotificationBell() {
   };
 
   const markAllRead = async () => {
-    setItems([]); // list is unread-only, so clearing = all gone
+    setItems([]);
     await supabase
       .from("notifications")
       .update({ is_read: true })
@@ -137,11 +183,11 @@ export default function NotificationBell() {
         <div
           className="bg-surface border border-app rounded-md shadow-2xl overflow-hidden"
           style={{
-            position: window.innerWidth <= 480 ? "fixed" : "absolute",
-            top: window.innerWidth <= 480 ? "var(--nav-height, 7rem)" : "3rem",
-            left: window.innerWidth <= 480 ? "8px" : "auto",
-            right: window.innerWidth <= 480 ? "8px" : 0,
-            width: window.innerWidth <= 480 ? "auto" : "22rem",
+            position: window.innerWidth <= 480 ? "fixed"    : "absolute",
+            top:      window.innerWidth <= 480 ? "var(--nav-height, 7rem)" : "3rem",
+            left:     window.innerWidth <= 480 ? "8px"      : "auto",
+            right:    window.innerWidth <= 480 ? "8px"      : 0,
+            width:    window.innerWidth <= 480 ? "auto"     : "22rem",
             zIndex: 190,
           }}
         >
@@ -159,20 +205,15 @@ export default function NotificationBell() {
 
           <div className="max-h-[60vh] overflow-y-auto">
             {loading && items.length === 0 && (
-              <div className="px-4 py-8 text-center text-xs text-faint">
-                Loading…
-              </div>
+              <div className="px-4 py-8 text-center text-xs text-faint">Loading…</div>
             )}
 
             {!loading && items.length === 0 && (
               <div className="px-4 py-10 text-center">
                 <Bell size={20} className="mx-auto mb-2 text-faint" />
-                <p className="text-sm font-medium text-main">
-                  You're all caught up
-                </p>
+                <p className="text-sm font-medium text-main">You're all caught up</p>
                 <p className="text-xs text-muted mt-1">
-                  Notifications about your listings, reports and replies appear
-                  here.
+                  Notifications about your listings, reports and replies appear here.
                 </p>
               </div>
             )}
