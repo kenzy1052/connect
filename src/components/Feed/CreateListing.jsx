@@ -121,7 +121,7 @@ function ImagePreview({ files, coverIndex, setCoverIndex, onRemove }) {
                 e.stopPropagation();
                 onRemove(i);
               }}
-              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity grid place-items-center"
+              className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity grid place-items-center"
             >
               <X className="w-3 h-3" />
             </button>

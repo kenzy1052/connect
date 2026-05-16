@@ -1,5 +1,5 @@
 /* CampusConnect Service Worker — handles Web Push + offline cache */
-const CACHE_NAME = "cc-v2";
+const CACHE_NAME = "cc-v3";
 const OFFLINE_URLS = ["/", "/index.html"];
 
 // ── Install: pre-cache shell ────────────────────────────────────────────────
@@ -19,10 +19,9 @@ self.addEventListener("activate", (e) => {
         Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
-      .then(() => {
-        // Tell all open tabs that a new version is active → they can reload
-        return self.clients.matchAll({ type: "window", includeUncontrolled: true });
-      })
+      .then(() =>
+        self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      )
       .then((clients) => {
         clients.forEach((client) => client.postMessage({ type: "NEW_CONTENT" }));
       })
@@ -30,12 +29,14 @@ self.addEventListener("activate", (e) => {
 });
 
 // ── Fetch: network-first, fallback to cache ─────────────────────────────────
+// IMPORTANT: Every code path must resolve to a real Response object.
+// Returning undefined or a rejected promise from e.respondWith() causes
+// "TypeError: Failed to convert value to 'Response'" and crashes the SW.
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   if (!e.request.url.startsWith(self.location.origin)) return;
 
-  // For navigation requests (page loads), always try network first
-  // This ensures shared links always get fresh content
+  // Navigation requests: network-first, fallback to cached index.html (SPA)
   if (e.request.mode === "navigate") {
     e.respondWith(
       fetch(e.request)
@@ -47,14 +48,16 @@ self.addEventListener("fetch", (e) => {
           return res;
         })
         .catch(() =>
-          caches.match(e.request).then(
-            (cached) => cached || caches.match("/index.html")
-          )
+          caches
+            .match(e.request)
+            .then((cached) => cached || caches.match("/index.html"))
+            .then((cached) => cached || new Response("Offline", { status: 503 }))
         )
     );
     return;
   }
 
+  // All other GET requests: network-first, fallback to cache, then 503
   e.respondWith(
     fetch(e.request)
       .then((res) => {
@@ -64,7 +67,11 @@ self.addEventListener("fetch", (e) => {
         }
         return res;
       })
-      .catch(() => caches.match(e.request))
+      .catch(() =>
+        caches
+          .match(e.request)
+          .then((cached) => cached || new Response("Offline", { status: 503 }))
+      )
   );
 });
 
@@ -82,8 +89,9 @@ self.addEventListener("push", (e) => {
   const title = payload.title || "CampusConnect";
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/logo.png",
-    badge: "/logo.png",
+    // Use a data URI fallback so showNotification never fails on missing logo
+    icon: payload.icon || "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
     image: payload.image || undefined,
     data: { url: payload.url || "/" },
     tag: payload.tag || "cc-notification",
@@ -106,14 +114,12 @@ self.addEventListener("notificationclick", (e) => {
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
-        // Focus existing tab if URL matches
         for (const client of clientList) {
           if (client.url.includes(self.location.origin) && "focus" in client) {
             client.navigate(targetUrl);
             return client.focus();
           }
         }
-        // Otherwise open new tab
         if (self.clients.openWindow) {
           return self.clients.openWindow(targetUrl);
         }
