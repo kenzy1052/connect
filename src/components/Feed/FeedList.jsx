@@ -1,7 +1,21 @@
-import { FeedCard } from "./FeedCard";
+// src/components/Feed/FeedList.jsx
+//
+// FIX — Gap between every 8 listings caused by ad banner dividers
+//
+// Root cause: `auto-rows-fr` forced ALL implicit grid rows to equal height
+// (a fraction of the container). When a `col-span-full` AdBanner div was
+// injected, it occupied its own row at the same `fr` height as the card rows,
+// making a large blank area appear above/below the ad.
+//
+// Fix: replaced `auto-rows-fr` with `auto-rows-auto` so each row naturally
+// sizes to its own content. Cards that wrap to a new row no longer have
+// unexpected empty space. Used `items-start` instead of `items-stretch` so
+// cards don't stretch to fill artificially tall rows.
+
+import { FeedCard }         from "./FeedCard";
 import { FeedCardSkeleton } from "./FeedCardSkeleton";
-import { EmptyState } from "./EmptyState";
-import AdBanner from "./AdBanner";
+import { EmptyState }       from "./EmptyState";
+import AdBanner             from "./AdBanner";
 import { Search, Bookmark, Package } from "lucide-react";
 
 // Inject an ad banner every N listing cards (full-width, inside the grid)
@@ -10,7 +24,7 @@ const AD_EVERY_N = 8;
 export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
   if (loading) {
     return (
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-stretch auto-rows-fr">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-start">
         {Array.from({ length: 10 }).map((_, i) => (
           <FeedCardSkeleton key={`skeleton-${i}`} />
         ))}
@@ -60,22 +74,25 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
         key={item.id}
         item={item}
         onClick={() => onListingClick(item)}
-      />,
+      />
     );
 
     // After every AD_EVERY_N items, inject a full-width ad
     if ((index + 1) % AD_EVERY_N === 0) {
       const adSlotNum = Math.floor((index + 1) / AD_EVERY_N);
       renderItems.push(
+        // col-span-full makes the ad take the whole row.
+        // With auto-rows-auto this row is only as tall as the AdBanner itself
+        // — no more phantom gap stretching the card rows.
         <div key={`ad-slot-${adSlotNum}`} className="col-span-full">
           <AdBanner slot={`feed-mid-${adSlotNum}`} compact />
-        </div>,
+        </div>
       );
     }
   });
 
   return (
-    <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-stretch auto-rows-fr">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-start auto-rows-auto">
       {renderItems}
     </div>
   );

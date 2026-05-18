@@ -23,7 +23,7 @@ export default function MobileNav() {
   return (
     <nav
       /* Changed border-t to border-t-2 and added border-opacity for visibility */
-      className="md:hidden fixed bottom-0 inset-x-0 z-[100] bg-surface border-t-4 border-app flex justify-around items-center"
+      className="md:hidden fixed bottom-0 inset-x-0 z-[100] bg-surface border-t-2 border-app flex justify-around items-center"
       style={{
         paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 0.5rem)",
         paddingTop: "0.5rem",

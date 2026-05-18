@@ -1,24 +1,15 @@
 // src/components/Admin/Reports/ReportListingCard.jsx
 //
-// TASK 4 FIX — Action buttons + responsive layout:
+// FIX — Glassmorphism action buttons:
 //
-// Before (bad):
-//   bg-amber-500 hover:bg-amber-400   ← Dismiss All
-//   bg-orange-500 hover:bg-orange-400 ← Penalize Seller
-//   bg-red-600 hover:bg-red-500       ← Delete Listing
-//   All with hardcoded glow shadows (shadow-amber-500/25, etc.)
+//   Dismiss All  → green glass  (50% green fill + backdrop-blur)
+//   Penalize     → amber glass  (50% amber fill + backdrop-blur)
+//   Delete       → deep red glass (50% crimson fill + backdrop-blur)
 //
-// After (correct):
-//   All three buttons use CSS theme variables.
-//   Dismiss  → "warning" semantic (--warning or --primary tint)
-//   Penalize → medium danger (--danger at reduced opacity)
-//   Delete   → full danger (--danger solid, no external color)
+// Buttons are also made slightly smaller (py-2 instead of py-3)
+// with compact text on mobile.
 //
-// Responsive layout:
-//   Mobile  (<lg): stacked column — listing card, then reporters, then actions row
-//   Desktop (lg+): 3-col horizontal — listing | reporters | actions
-//   Action buttons are flex-row on mobile (horizontal strip), flex-col on desktop.
-//   Fixed ugly mobile action strip overflow by capping text and using gap-2.
+// Responsive layout is unchanged: 3-col on desktop, horizontal strip on mobile.
 
 import { useNavigate } from "react-router-dom";
 import {
@@ -42,23 +33,60 @@ function getPrice(listing) {
   return "Ask for price";
 }
 
+// ── Glassmorphism button styles ───────────────────────────────────────────────
+//
+// "Glass" effect: semi-transparent coloured fill + a very subtle backdrop-filter.
+// On browsers that don't support backdrop-filter it gracefully falls back to the
+// flat colour (still looks great, just without the blur).
+//
+// We keep all colours as raw HSL numbers so they read on both light & dark themes.
+//
+const GLASS_STYLES = {
+  dismiss: {
+    // 50% opacity emerald
+    background: "hsla(142, 71%, 40%, 0.50)",
+    border: "1px solid hsla(142, 71%, 55%, 0.55)",
+    color: "#ffffff",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    boxShadow: "0 2px 10px hsla(142, 71%, 40%, 0.25)",
+  },
+  penalize: {
+    // 50% opacity amber
+    background: "hsla(38, 92%, 48%, 0.50)",
+    border: "1px solid hsla(38, 92%, 60%, 0.55)",
+    color: "#ffffff",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    boxShadow: "0 2px 10px hsla(38, 92%, 48%, 0.25)",
+  },
+  delete: {
+    // 50% opacity deep crimson
+    background: "hsla(0, 72%, 45%, 0.55)",
+    border: "1px solid hsla(0, 72%, 60%, 0.55)",
+    color: "#ffffff",
+    backdropFilter: "blur(8px)",
+    WebkitBackdropFilter: "blur(8px)",
+    boxShadow: "0 2px 10px hsla(0, 72%, 45%, 0.30)",
+  },
+};
+
 export default function ReportListingCard({ listing, onAction }) {
   const navigate = useNavigate();
 
-  const reports = listing.reports ?? [];
-  const price = getPrice(listing);
+  const reports  = listing.reports ?? [];
+  const price    = getPrice(listing);
   const category = listing.category_name ?? null;
   const listingDate = listing.listing_created_at
     ? new Date(listing.listing_created_at).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
+        day: "2-digit", month: "short", year: "numeric",
       })
     : null;
 
   return (
     <div className="bg-surface border border-app rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-col lg:flex-row">
+
         {/* ═══ LEFT: Listing details ════════════════════════════════ */}
         <div className="flex flex-row lg:flex-col gap-3 p-4 lg:w-56 xl:w-60 lg:shrink-0 lg:border-r border-b lg:border-b-0 border-app">
           {/* Cover image */}
@@ -68,9 +96,7 @@ export default function ReportListingCard({ listing, onAction }) {
                 src={listing.cover_image_url}
                 alt={listing.title ?? "Listing"}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/placeholder.png";
-                }}
+                onError={(e) => { e.currentTarget.src = "/placeholder.png"; }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-faint">
@@ -86,9 +112,7 @@ export default function ReportListingCard({ listing, onAction }) {
             </p>
             <p className="text-[11px] text-muted leading-tight">
               Posted by{" "}
-              <span className="font-bold text-brand">
-                {listing.seller_name ?? "Unknown"}
-              </span>
+              <span className="font-bold text-brand">{listing.seller_name ?? "Unknown"}</span>
             </p>
 
             <div className="flex flex-col gap-1 mt-1">
@@ -101,9 +125,7 @@ export default function ReportListingCard({ listing, onAction }) {
               {price && (
                 <div className="flex items-center gap-1.5 text-[11px] text-faint">
                   <span className="text-[9px] font-black shrink-0">₵</span>
-                  <span className="font-semibold text-main truncate">
-                    {price.replace("GH₵ ", "")}
-                  </span>
+                  <span className="font-semibold text-main truncate">{price.replace("GH₵ ", "")}</span>
                 </div>
               )}
               {listingDate && (
@@ -155,19 +177,16 @@ export default function ReportListingCard({ listing, onAction }) {
           </div>
         </div>
 
-        {/* ═══ RIGHT: Action buttons ════════════════════════════════
+        {/* ═══ RIGHT: Glassmorphism action buttons ═══════════════════
          *
-         * Mobile  (<lg): horizontal row pinned to bottom of card
+         * Mobile  (<lg): horizontal row pinned to the bottom
          * Desktop (lg+): vertical column on the right edge
          *
-         * ALL colors use CSS theme variables — zero hardcoded amber/orange/red.
-         *
-         * Dismiss All  → warning tint (--warning HSL var with fallback)
-         * Penalize     → danger tint  (--danger at 0.12 opacity bg)
-         * Delete       → danger solid (--danger full bg, white text)
+         * Each button uses the GLASS_STYLES object above.
          */}
-        <div className="flex flex-row lg:flex-col gap-2 p-3 lg:w-44 xl:w-48 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-app bg-surface-2/20 items-stretch">
-          {/* Dismiss All */}
+        <div className="flex flex-row lg:flex-col gap-2 p-3 lg:w-40 xl:w-44 lg:shrink-0 border-t lg:border-t-0 lg:border-l border-app bg-surface-2/10 items-stretch">
+
+          {/* ── Dismiss All (green) ── */}
           <button
             onClick={() =>
               onAction("dismiss_all", {
@@ -176,22 +195,16 @@ export default function ReportListingCard({ listing, onAction }) {
               })
             }
             className="flex-1 lg:flex-none flex items-center justify-center gap-1.5
-              px-3 py-3 rounded-xl font-bold text-[12px] leading-tight text-center
+              px-2 py-2 rounded-xl font-bold text-[11px] leading-tight text-center
               active:scale-95 transition-all"
-            style={{
-              background: "hsl(var(--warning, 42 100% 56%) / 0.12)",
-              border: "1px solid hsl(var(--warning, 42 100% 56%) / 0.3)",
-              color: "hsl(var(--warning, 42 100% 56%))",
-            }}
+            style={GLASS_STYLES.dismiss}
           >
-            <CheckCircle2 size={13} className="shrink-0" />
-            <span className="hidden sm:inline lg:hidden xl:inline">
-              Dismiss All
-            </span>
+            <CheckCircle2 size={12} className="shrink-0" />
+            <span className="hidden sm:inline lg:hidden xl:inline">Dismiss All</span>
             <span className="sm:hidden lg:inline xl:hidden">Dismiss</span>
           </button>
 
-          {/* Penalize Seller */}
+          {/* ── Penalize Seller (amber) ── */}
           <button
             onClick={() =>
               onAction("penalize_seller", {
@@ -201,22 +214,16 @@ export default function ReportListingCard({ listing, onAction }) {
               })
             }
             className="flex-1 lg:flex-none flex items-center justify-center gap-1.5
-              px-3 py-3 rounded-xl font-bold text-[12px] leading-tight text-center
+              px-2 py-2 rounded-xl font-bold text-[11px] leading-tight text-center
               active:scale-95 transition-all"
-            style={{
-              background: "hsl(var(--danger)/0.1)",
-              border: "1px solid hsl(var(--danger)/0.3)",
-              color: "hsl(var(--danger))",
-            }}
+            style={GLASS_STYLES.penalize}
           >
-            <ShieldX size={13} className="shrink-0" />
-            <span className="hidden sm:inline lg:hidden xl:inline">
-              Penalize (−10)
-            </span>
+            <ShieldX size={12} className="shrink-0" />
+            <span className="hidden sm:inline lg:hidden xl:inline">Penalize (−10)</span>
             <span className="sm:hidden lg:inline xl:hidden">−10 pts</span>
           </button>
 
-          {/* Delete Listing — most destructive, full danger color */}
+          {/* ── Delete Listing (deep red) ── */}
           <button
             onClick={() =>
               onAction("delete_listing", {
@@ -226,21 +233,16 @@ export default function ReportListingCard({ listing, onAction }) {
               })
             }
             className="flex-1 lg:flex-none flex items-center justify-center gap-1.5
-              px-3 py-3 rounded-xl font-bold text-[12px] leading-tight text-center
+              px-2 py-2 rounded-xl font-bold text-[11px] leading-tight text-center
               active:scale-95 transition-all"
-            style={{
-              background: "hsl(var(--danger))",
-              color: "hsl(var(--primary-fg))",
-              boxShadow: "0 2px 8px hsl(var(--danger)/0.25)",
-            }}
+            style={GLASS_STYLES.delete}
           >
-            <Trash2 size={13} className="shrink-0" />
-            <span className="hidden sm:inline lg:hidden xl:inline">
-              Delete Listing
-            </span>
+            <Trash2 size={12} className="shrink-0" />
+            <span className="hidden sm:inline lg:hidden xl:inline">Delete Listing</span>
             <span className="sm:hidden lg:inline xl:hidden">Delete</span>
           </button>
         </div>
+
       </div>
     </div>
   );
