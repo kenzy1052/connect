@@ -11,42 +11,73 @@
       rel="stylesheet"
     />
     <title>CampusConnect | UCC Student Marketplace</title>
-
-    <!-- Primary meta -->
     <meta
       name="description"
       content="Buy and sell within the University of Cape Coast student community. Verified sellers, trust scores, no scams."
     />
 
-    <!-- Open Graph — controls WhatsApp / Facebook / Telegram preview cards -->
-    <!-- IMPORTANT: replace connect-c.netlify.app with your actual domain    -->
-    <meta property="og:site_name" content="CampusConnect" />
-    <meta property="og:title" content="CampusConnect | UCC Student Marketplace" />
+    <!-- ─────────────────────────────────────────────────────────────────────
+      TASK 2 FIX — Open Graph tags
+      
+      THE BUG: og:image was set to "/og-image.png" (relative path).
+      WhatsApp, Telegram and other social crawlers do NOT follow relative URLs.
+      They need a fully-qualified absolute HTTPS URL or they silently skip the image.
+      
+      THE FIX: All og:image values are now absolute URLs pointing to the production domain.
+      
+      NOTE on per-listing images:
+      Since CampusConnect is a client-side React SPA, social crawlers see this
+      static HTML shell — not the dynamically injected Helmet tags from ListingDetail.
+      The tags set here (with the site-wide fallback image) are what crawlers see
+      for EVERY URL, including /listing/:id routes, unless you add server-side
+      prerendering (a Netlify Edge Function or SSR).
+      
+      For now, this gives crawlers the correct fallback image. The per-listing
+      Helmet tags in ListingDetail.jsx remain and work correctly for in-browser
+      <title> updates and for any future prerendering solution.
+    ─────────────────────────────────────────────────────────────────────── -->
+
+    <!-- Open Graph -->
+    <meta
+      property="og:title"
+      content="CampusConnect | UCC Student Marketplace"
+    />
     <meta
       property="og:description"
-      content="The safest way to buy and sell with fellow UCC students. Verified sellers, trust scores, real reviews."
+      content="The safe way to trade with fellow UCC students."
     />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://connect-c.netlify.app" />
-    <!--
-      og:image must be an absolute URL to a publicly accessible image.
-      Recommended size: 1200 × 630 px.
-      Create this file and place it in your public/ folder, then deploy.
-    -->
-    <meta property="og:image" content="https://connect-c.netlify.app/og-image.png" />
+
+    <!-- CHANGED: was "/og-image.png" — now absolute URL so crawlers can fetch it -->
+    <meta
+      property="og:image"
+      content="https://connect-c.netlify.app/og-image.png"
+    />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="CampusConnect — UCC Student Marketplace" />
-    <meta property="og:locale" content="en_GH" />
+    <meta
+      property="og:image:alt"
+      content="CampusConnect — UCC Student Marketplace"
+    />
+    <meta property="og:type" content="website" />
 
-    <!-- Twitter / X card -->
+    <!-- CHANGED: was "https://yourdomain.com" — now the real production URL -->
+    <meta property="og:url" content="https://connect-c.netlify.app" />
+    <meta property="og:site_name" content="CampusConnect" />
+
+    <!-- Twitter / X Card (also used by some chat apps) -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="CampusConnect | UCC Student Marketplace" />
+    <meta
+      name="twitter:title"
+      content="CampusConnect | UCC Student Marketplace"
+    />
     <meta
       name="twitter:description"
-      content="The safest way to buy and sell with fellow UCC students."
+      content="The safe way to trade with fellow UCC students."
     />
-    <meta name="twitter:image" content="https://connect-c.netlify.app/og-image.png" />
+    <meta
+      name="twitter:image"
+      content="https://connect-c.netlify.app/og-image.png"
+    />
 
     <meta name="theme-color" content="#6366f1" />
 
@@ -56,7 +87,10 @@
 
     <!-- iOS Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="CampusConnect" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
   </head>

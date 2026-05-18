@@ -1,3 +1,10 @@
+// src/components/Admin/Reports/ReporterItem.jsx
+//
+// TASK 4 FIX — Theming:
+//  Before: Avatar used bg-indigo-600/20 border-indigo-500/20 text-indigo-300
+//          False Report button used border-red-500/40 bg-red-500/5 text-red-400
+//  After:  All colors use CSS theme variables (--primary, --danger).
+
 import { AlertTriangle } from "lucide-react";
 
 function timeAgo(ts) {
@@ -26,8 +33,15 @@ export default function ReporterItem({ report, onFalseReport }) {
 
   return (
     <div className="flex items-center gap-2 sm:gap-3 px-4 py-3 hover:bg-surface-2/40 transition-colors">
-      {/* Avatar */}
-      <div className="w-8 h-8 rounded-full bg-indigo-600/20 border border-indigo-500/20 flex items-center justify-center text-indigo-300 font-black text-[12px] shrink-0">
+      {/* Avatar — brand-primary tint, theme-aware */}
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center font-black text-[12px] shrink-0"
+        style={{
+          background: "hsl(var(--primary)/0.12)",
+          border: "1px solid hsl(var(--primary)/0.2)",
+          color: "hsl(var(--primary))",
+        }}
+      >
         {name.charAt(0).toUpperCase()}
       </div>
 
@@ -52,7 +66,7 @@ export default function ReporterItem({ report, onFalseReport }) {
         {timeAgo(report.created_at)}
       </p>
 
-      {/* False Report (-2) */}
+      {/* False Report button — danger tint, theme-aware */}
       <button
         onClick={() =>
           onFalseReport({
@@ -62,8 +76,18 @@ export default function ReporterItem({ report, onFalseReport }) {
           })
         }
         className="shrink-0 flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-lg
-          border border-red-500/40 bg-red-500/5 text-red-400 hover:bg-red-500/15
           text-[10px] font-black transition-colors whitespace-nowrap"
+        style={{
+          background: "hsl(var(--danger)/0.06)",
+          border: "1px solid hsl(var(--danger)/0.35)",
+          color: "hsl(var(--danger))",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "hsl(var(--danger)/0.14)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "hsl(var(--danger)/0.06)";
+        }}
       >
         <AlertTriangle size={9} />
         False Report (−2)

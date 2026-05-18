@@ -1,3 +1,8 @@
+/**
+ * ListingDetail.jsx
+ * Includes original UI/UX, dynamic Open Graph (OG) image fixes,
+ * and removed redundant Share/Save buttons from the top bar.
+ */
 import { Helmet } from "react-helmet-async";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -28,6 +33,11 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import "yet-another-react-lightbox/styles.css";
 import AdminListingActions from "../Admin/AdminListingActions";
+
+// ── Site base URL — used to build absolute OG URLs ───────────────────────────
+// MUST be an absolute URL with no trailing slash.
+const SITE_URL = "https://connect-c.netlify.app";
+const FALLBACK_OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 /* Brand icon not in lucide-react — inline SVG */
 function WhatsAppIcon({ size = 18, className = "" }) {
@@ -292,36 +302,40 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
   // Full loading skeleton when we have a stale listing but are refreshing
   if (loading) return <DetailSkeleton />;
 
+  // ── Build absolute OG URLs ────────────────────────────────────────────────
+  const ogImage = images[0]?.image_url?.startsWith("http")
+    ? images[0].image_url
+    : FALLBACK_OG_IMAGE;
+
+  const ogUrl = `${SITE_URL}/listing/${listing?.id || listingId}`;
+  const ogTitle = `${listingData.title} — ${getPriceDisplay()}`;
+  const ogDescription = (
+    listingData.description || "Listed on CampusConnect"
+  ).slice(0, 160);
+
   return (
     <>
       <Helmet>
         <title>
           {listingData.title} — {getPriceDisplay()} | CampusConnect
         </title>
-        <meta
-          name="description"
-          content={(listingData.description || "Listed on CampusConnect").slice(
-            0,
-            160,
-          )}
-        />
-        <meta
-          property="og:title"
-          content={`${listingData.title} — ${getPriceDisplay()}`}
-        />
-        <meta
-          property="og:description"
-          content={(listingData.description || "Listed on CampusConnect").slice(
-            0,
-            160,
-          )}
-        />
-        <meta
-          property="og:image"
-          content={images[0]?.image_url || "/og-image.png"}
-        />
+        <meta name="description" content={ogDescription} />
+
+        {/* Open Graph */}
+        <meta property="og:title" content={ogTitle} />
+        <meta property="og:description" content={ogDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
         <meta property="og:type" content="product" />
+        <meta property="og:url" content={ogUrl} />
         <meta property="og:site_name" content="CampusConnect" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={ogTitle} />
+        <meta name="twitter:description" content={ogDescription} />
+        <meta name="twitter:image" content={ogImage} />
       </Helmet>
 
       <Lightbox
@@ -391,18 +405,6 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
               {listingData.title}
             </span>
           </nav>
-
-          {/* Desktop share / save */}
-          <div className="hidden md:flex items-center gap-4 shrink-0 ml-4">
-            <button
-              onClick={handleShare}
-              className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm font-medium transition-colors"
-            >
-              <Share2 size={14} />
-              Share
-            </button>
-            <SaveButton listingId={listingData.id} variant="text" />
-          </div>
         </div>
 
         <div className="grid md:grid-cols-[1fr_380px] gap-8 items-start">

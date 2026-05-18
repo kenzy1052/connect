@@ -1,3 +1,7 @@
+// src/MainApp.jsx
+// TASK 5 CHANGE: Added <BetaToast /> at the bottom of the return,
+// just after <PWAInstallPrompt />. Everything else is identical to original.
+
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useDiscoveryFeed } from "./hooks/useDiscoveryFeed";
@@ -13,6 +17,8 @@ import OfflineBanner from "./components/Layout/OfflineBanner";
 import AdBanner from "./components/Feed/AdBanner";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import RecommendedSection from "./components/Feed/RecommendedSection";
+// ── Task 5: Beta feedback toast ───────────────────────────────────────────────
+import BetaToast from "./components/BetaToast";
 
 export default function MainApp() {
   const { user, profile } = useAuth();
@@ -57,13 +63,7 @@ export default function MainApp() {
 
   /**
    * Read ?category= from the URL.
-   *
-   * The hero (and any external link) may use a category SLUG (e.g. "electronics").
-   * The feed query needs the UUID (e.g. "242a1f6b-...").
-   *
-   * This effect translates slug → UUID using the already-fetched categories list.
-   * It also accepts a UUID directly (for backward compat with filter chips).
-   * It only runs once categories are loaded to avoid a redundant re-fetch.
+   * Translates slug → UUID using the already-fetched categories list.
    */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -73,14 +73,9 @@ export default function MainApp() {
       setCategoryId("");
       return;
     }
-
-    // If categories haven't loaded yet, wait — this effect re-runs when they do
     if (categories.length === 0) return;
 
-    // Try slug first, then id (UUIDs come from the filter panel)
     const found = categories.find((c) => c.slug === urlCat || c.id === urlCat);
-
-    // If we found a match use the UUID; if not (e.g. unknown slug) clear the filter
     setCategoryId(found ? found.id : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search, categories]);
@@ -102,7 +97,6 @@ export default function MainApp() {
   }, [loading, hasMore, loadMore, isBrowse]);
 
   const openDetailView = (listing) => {
-    // Track for personalized recommendations
     trackListingView(listing);
     navigate(`/listing/${listing.id}`, { state: { listing } });
   };
@@ -147,7 +141,7 @@ export default function MainApp() {
           {/* Ad banner — feed pages only */}
           {isFeedView && <AdBanner slot="feed-top" />}
 
-          {/* Personalized recommendations — home only, hidden until user has browsed */}
+          {/* Personalized recommendations — home only */}
           {isHome && <RecommendedSection onListingClick={openDetailView} />}
 
           {error && !dismissedError && (
@@ -219,6 +213,14 @@ export default function MainApp() {
 
       {/* PWA install prompt — floats above mobile nav */}
       <PWAInstallPrompt />
+
+      {/*
+       * Beta toast — floats in top-right corner.
+       * Appears 1.2s after every fresh app load.
+       * Dismissed per-session via sessionStorage.
+       * Clicking body → /support (WhatsApp feedback form).
+       */}
+      <BetaToast />
     </div>
   );
 }

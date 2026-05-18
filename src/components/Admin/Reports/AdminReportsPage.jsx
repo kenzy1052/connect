@@ -1,3 +1,18 @@
+// src/components/Admin/Reports/AdminReportsPage.jsx
+//
+// TASK 4 FIX — Reports tab theming + responsive layout:
+//
+// Color changes:
+//  - Summary bar count bubble: bg-indigo-500/20 text-indigo-400 → hsl(var(--primary)) vars
+//  - Error state: bg-red-500/10 border-red-500/20 text-red-300 → hsl(var(--danger)) vars
+//  - Empty "all clear" state: bg-emerald-500/10 text-emerald-400 → hsl(var(--success)) vars
+//
+// Responsive fixes:
+//  - Skeleton cards now match the real card's mobile/desktop layout
+//  - Summary bar wraps cleanly on mobile with flex-wrap
+//  - The reports list itself delegates to ReportListingCard which
+//    has been fully reworked (see ReportListingCard.jsx)
+
 import { useState } from "react";
 import { CheckCircle2, RefreshCw, AlertCircle } from "lucide-react";
 import { supabase } from "../../../lib/supabaseClient";
@@ -6,13 +21,14 @@ import ConfirmModal from "../../UI/ConfirmModal";
 import ReportListingCard from "./ReportListingCard";
 import { useAdminReports } from "./useAdminReports";
 
-/* ── Skeleton ─────────────────────────────────────────────────── */
+/* ── Loading skeleton — matches real card structure on mobile + desktop ─── */
 function ReportSkeleton() {
   return (
     <div className="bg-surface border border-app rounded-2xl overflow-hidden animate-pulse">
       <div className="flex flex-col lg:flex-row">
-        <div className="p-4 lg:w-56 lg:border-r border-b lg:border-b-0 border-app">
-          <div className="w-full h-36 bg-surface-2 rounded-xl mb-3" />
+        {/* Left panel — image + text */}
+        <div className="p-4 lg:w-56 lg:border-r border-b lg:border-b-0 border-app space-y-3">
+          <div className="w-full h-36 bg-surface-2 rounded-xl" />
           <div className="space-y-2">
             <div className="h-3 bg-surface-2 rounded w-3/4" />
             <div className="h-2 bg-surface-2 rounded w-1/2" />
@@ -20,6 +36,8 @@ function ReportSkeleton() {
             <div className="h-8 bg-surface-2 rounded-xl mt-4" />
           </div>
         </div>
+
+        {/* Middle — reporter rows */}
         <div className="flex-1 p-4 space-y-4">
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex gap-3 items-center">
@@ -32,9 +50,14 @@ function ReportSkeleton() {
             </div>
           ))}
         </div>
-        <div className="p-3 lg:w-44 bg-surface-2/20 flex flex-row lg:flex-col gap-2">
+
+        {/* Right — action buttons */}
+        <div className="p-3 lg:w-44 border-t lg:border-t-0 lg:border-l border-app bg-surface-2/20 flex flex-row lg:flex-col gap-2">
           {[0, 1, 2].map((i) => (
-            <div key={i} className="flex-1 h-11 bg-surface-2 rounded-xl" />
+            <div
+              key={i}
+              className="flex-1 lg:flex-none h-11 bg-surface-2 rounded-xl"
+            />
           ))}
         </div>
       </div>
@@ -42,14 +65,14 @@ function ReportSkeleton() {
   );
 }
 
-/* ── Main component ───────────────────────────────────────────── */
+/* ── Main component ─────────────────────────────────────────────────────── */
 export default function AdminReportsPage() {
   const toast = useToast();
   const { reports, loading, error, refetch } = useAdminReports();
   const [confirm, setConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  /* ── Action helpers ─────────────────────────────────────────── */
+  /* ── RPC helper ─────────────────────────────────────────────── */
   const callRpc = async (fn, args, successMsg) => {
     setActionLoading(true);
     const { error: rpcError } = await supabase.rpc(fn, args);
@@ -66,7 +89,7 @@ export default function AdminReportsPage() {
     const ok = await callRpc(
       "admin_penalise_reporter",
       { p_reporter_id: reporterId, p_report_id: reportId, p_penalty: 2 },
-      "Reporter penalised −2. Report dismissed."
+      "Reporter penalised −2. Report dismissed.",
     );
     if (ok) refetch();
   };
@@ -75,7 +98,7 @@ export default function AdminReportsPage() {
     const ok = await callRpc(
       "admin_dismiss_reports_for_listing",
       { p_listing_id: listingId },
-      "All reports dismissed."
+      "All reports dismissed.",
     );
     if (ok) refetch();
   };
@@ -84,7 +107,7 @@ export default function AdminReportsPage() {
     const ok = await callRpc(
       "admin_confirm_listing_reports",
       { p_listing_id: listingId },
-      "Seller penalised −10."
+      "Seller penalised −10.",
     );
     if (ok) refetch();
   };
@@ -93,12 +116,12 @@ export default function AdminReportsPage() {
     const ok = await callRpc(
       "admin_delete_listing",
       { p_listing_id: listingId },
-      "Listing deleted."
+      "Listing deleted.",
     );
     if (ok) refetch();
   };
 
-  /* ── Dispatch action → show confirm modal ───────────────────── */
+  /* ── Confirm dispatch ───────────────────────────────────────── */
   const handleAction = (type, payload) => {
     const configs = {
       false_report: {
@@ -135,33 +158,42 @@ export default function AdminReportsPage() {
 
   const totalReports = reports.reduce(
     (sum, r) => sum + (r.pending_reports ?? 0),
-    0
+    0,
   );
 
   return (
     <div className="space-y-4">
-      {/* Header */}
+      {/* ── Page header ─────────────────────────────────────────── */}
       <div>
         <h2 className="text-xl font-black text-main mb-0.5">Reports</h2>
         <p className="text-sm text-muted">
-          Manage reported listings. Review, take action and maintain a safe marketplace.
+          Manage reported listings. Review, take action and maintain a safe
+          marketplace.
         </p>
       </div>
 
-      {/* Summary bar */}
-      <div className="flex items-center justify-between bg-surface border border-app rounded-xl px-4 py-3">
-        <div className="flex items-center gap-3 flex-wrap gap-y-1 text-sm">
+      {/* ── Summary bar ─────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-surface border border-app rounded-xl px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <span className="flex items-center gap-2 font-bold text-main">
-            <span className="w-5 h-5 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-[10px] font-black">
+            {/* Count bubble — theme-primary, no hardcoded indigo */}
+            <span
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
+              style={{
+                background: "hsl(var(--primary)/0.15)",
+                color: "hsl(var(--primary))",
+              }}
+            >
               {reports.length}
             </span>
             Reported Listing{reports.length !== 1 ? "s" : ""}
           </span>
-          <span className="text-faint">|</span>
+          <span className="text-faint hidden sm:inline">|</span>
           <span className="text-muted">
             {totalReports} Pending Report{totalReports !== 1 ? "s" : ""}
           </span>
         </div>
+
         <button
           onClick={refetch}
           disabled={loading || actionLoading}
@@ -172,15 +204,27 @@ export default function AdminReportsPage() {
         </button>
       </div>
 
-      {/* Error state */}
+      {/* ── Error state — uses --danger CSS var ─────────────────── */}
       {error && !loading && (
-        <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-          <AlertCircle size={16} className="text-red-400 shrink-0" />
-          <p className="text-sm text-red-300">{error}</p>
+        <div
+          className="flex items-center gap-3 rounded-xl px-4 py-3"
+          style={{
+            background: "hsl(var(--danger)/0.08)",
+            border: "1px solid hsl(var(--danger)/0.25)",
+          }}
+        >
+          <AlertCircle
+            size={16}
+            className="shrink-0"
+            style={{ color: "hsl(var(--danger))" }}
+          />
+          <p className="text-sm" style={{ color: "hsl(var(--danger))" }}>
+            {error}
+          </p>
         </div>
       )}
 
-      {/* Loading */}
+      {/* ── Loading skeletons ────────────────────────────────────── */}
       {loading && (
         <div className="space-y-4">
           {[0, 1, 2].map((i) => (
@@ -189,11 +233,20 @@ export default function AdminReportsPage() {
         </div>
       )}
 
-      {/* Empty */}
+      {/* ── Empty state — uses --success CSS var ─────────────────── */}
       {!loading && !error && reports.length === 0 && (
         <div className="text-center py-20 flex flex-col items-center gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-            <CheckCircle2 size={26} className="text-emerald-400" />
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{
+              background: "hsl(var(--success, 157 90% 42%)/0.1)",
+              border: "1px solid hsl(var(--success, 157 90% 42%)/0.2)",
+            }}
+          >
+            <CheckCircle2
+              size={26}
+              style={{ color: "hsl(var(--success, 157 90% 42%))" }}
+            />
           </div>
           <p className="font-black text-main text-lg">All clear!</p>
           <p className="text-sm text-faint max-w-xs">
@@ -202,7 +255,7 @@ export default function AdminReportsPage() {
         </div>
       )}
 
-      {/* One card per reported listing */}
+      {/* ── Report cards — one per reported listing ───────────────── */}
       {!loading &&
         reports.map((listing) => (
           <ReportListingCard
@@ -212,12 +265,8 @@ export default function AdminReportsPage() {
           />
         ))}
 
-      {/* Confirm modal — uses onClose (matches ConfirmModal.jsx API) */}
       {confirm && (
-        <ConfirmModal
-          {...confirm}
-          onClose={() => setConfirm(null)}
-        />
+        <ConfirmModal {...confirm} onClose={() => setConfirm(null)} />
       )}
     </div>
   );
