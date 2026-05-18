@@ -33,6 +33,7 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
 import "yet-another-react-lightbox/styles.css";
 import AdminListingActions from "../Admin/AdminListingActions";
+import { formatPrice } from "../../utils/formatPrice";
 
 // ── Site base URL — used to build absolute OG URLs ───────────────────────────
 // MUST be an absolute URL with no trailing slash.
@@ -234,11 +235,22 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
   }, [listing?.id, listingId, user]);
 
   const getPriceDisplay = () => {
-    if (listingData.price !== null) return "GH₵ " + listingData.price;
-    if (listingData.price_min && listingData.price_max)
-      return "GH₵ " + listingData.price_min + " – " + listingData.price_max;
-    if (listingData.price_min) return "From GH₵ " + listingData.price_min;
-    if (listingData.price_max) return "Up to GH₵ " + listingData.price_max;
+    // Fixed price
+    if (listingData.price !== null && listingData.price !== undefined) {
+      return formatPrice(listingData.price) ?? "Ask for price";
+    }
+    // Price range
+    if (listingData.price_min && listingData.price_max) {
+      const min = formatPrice(listingData.price_min);
+      const max = formatPrice(listingData.price_max);
+      return `${min} – ${max}`;
+    }
+    if (listingData.price_min) {
+      return `From ${formatPrice(listingData.price_min)}`;
+    }
+    if (listingData.price_max) {
+      return `Up to ${formatPrice(listingData.price_max)}`;
+    }
     return "Ask for price";
   };
 

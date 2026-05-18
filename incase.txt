@@ -1,0 +1,17 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDxEkrE7dY-WBVC3oxme1bt4zkTyIqtYKE",
+  authDomain: "campusconnect-c25d2.firebaseapp.com",
+  projectId: "campusconnect-c25d2",
+  storageBucket: "campusconnect-c25d2.firebasestorage.app",
+  messagingSenderId: "1047423630981",
+  appId: "1:1047423630981:web:4faee399a5f675d3aeb3ec"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);

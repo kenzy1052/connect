@@ -1,4 +1,17 @@
+// src/components/Feed/FeedCard.jsx
+//
+// CHANGE: Replaced raw price string interpolation with formatPrice().
+//
+// Before:
+//   `GH₵ ${item.price}`                     → no comma formatting, no decimals
+//   `GH₵ ${item.price_min}–${item.price_max}`
+//
+// After:
+//   formatPrice(item.price)                  → "GH₵ 1,200.00"
+//   `${formatPrice(item.price_min)}–${formatPrice(item.price_max)}`
+
 import SaveButton from "./SaveButton";
+import { formatPrice } from "../../utils/formatPrice";
 
 /**
  * FeedCard — minimalist marketplace card (AliExpress style).
@@ -6,12 +19,22 @@ import SaveButton from "./SaveButton";
  */
 export function FeedCard({ item, onClick }) {
   const getPriceDisplay = () => {
-    if (item.price !== null && item.price !== undefined)
-      return `GH₵ ${item.price}`;
-    if (item.price_min && item.price_max)
-      return `GH₵ ${item.price_min}–${item.price_max}`;
-    if (item.price_min) return `From GH₵ ${item.price_min}`;
-    if (item.price_max) return `Up to GH₵ ${item.price_max}`;
+    // Fixed price
+    if (item.price !== null && item.price !== undefined) {
+      return formatPrice(item.price) ?? "Ask for price";
+    }
+    // Price range
+    if (item.price_min && item.price_max) {
+      const min = formatPrice(item.price_min);
+      const max = formatPrice(item.price_max);
+      return `${min}–${max}`;
+    }
+    if (item.price_min) {
+      return `From ${formatPrice(item.price_min)}`;
+    }
+    if (item.price_max) {
+      return `Up to ${formatPrice(item.price_max)}`;
+    }
     return "Ask for price";
   };
 
@@ -21,7 +44,6 @@ export function FeedCard({ item, onClick }) {
   return (
     <article
       onClick={onClick}
-      // UPDATED CLASSES BELOW: changed transition-[shadow,transform] to transition-all, duration-200 to 300, and ease-out to ease-in-out
       className="feed-card group cursor-pointer flex flex-col h-full overflow-hidden
         transition-all duration-300 ease-in-out
         hover:-translate-y-1
