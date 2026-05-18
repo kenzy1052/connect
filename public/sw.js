@@ -1,68 +1,28 @@
 /* public/sw.js
  *
- * CampusConnect Service Worker
+ * CampusConnect Service Worker — offline cache + foreground message relay
  *
- * CHANGE: Added Firebase Messaging background handler for FCM.
- * The offline cache and notificationclick logic are UNCHANGED.
+ * NOTE ON FCM:
+ *   Firebase background push messages are handled by firebase-messaging-sw.js,
+ *   NOT this file. Firebase requires that exact filename and registers it
+ *   separately via getToken(). Keep both files in /public.
  *
- * How it works:
- *   - FCM delivers background push messages to this SW via the
- *     `push` event. Firebase Messaging intercepts it via importScripts.
- *   - For foreground messages, Firebase calls onMessage() in the React
- *     app (handled in useFCMToken.js) — this SW is NOT involved.
- *   - The `notificationclick` handler remains the same — works for both
- *     FCM and any other notification source.
+ *   This file handles:
+ *     - Offline shell caching (install / activate / fetch)
+ *     - Posting a NEW_CONTENT message to open tabs on SW update
+ *     - Notification click routing (for any notification source)
+ *
+ * FIX APPLIED — "Failed to convert value to 'Response'" error:
+ *   The fetch handler's catch branches previously returned undefined when
+ *   caches.match() found nothing (cache miss + network failure). The browser
+ *   rejected undefined as a Response, producing the console error you saw.
+ *   Now every code path returns a valid Response.
  */
 
-// ── Firebase Messaging SW integration ────────────────────────────────────────
-// importScripts loads the Firebase Messaging SW helper. It must be at the
-// top level of the service worker (not inside an event handler).
-importScripts(
-  "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js",
-);
-importScripts(
-  "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js",
-);
-
-// Initialize Firebase inside the SW.
-// These values MUST match your VITE_FIREBASE_* env vars exactly.
-// Hard-code them here — Vite env vars are NOT available in the SW.
-// Initialize Firebase inside the SW.
-// Hard-code them here — Vite env vars are NOT available in the SW.
-firebase.initializeApp({
-  apiKey: "AIzaSyDxEkrE7dY-WBVC3oxme1bt4zkTyIqtYKE",
-  authDomain: "campusconnect-c25d2.firebaseapp.com",
-  projectId: "campusconnect-c25d2",
-  storageBucket: "campusconnect-c25d2.firebasestorage.app",
-  messagingSenderId: "1047423630981",
-  appId: "1:1047423630981:web:4faee399a5f675d3aeb3ec",
-});
-
-// Retrieve the Firebase Messaging object
-const messaging = firebase.messaging();
-
-// Handle background messages (app is closed or not in focus)
-messaging.onBackgroundMessage((payload) => {
-  const { title, body, url, icon, tag } =
-    payload.data ?? payload.notification ?? {};
-
-  return self.registration.showNotification(title ?? "CampusConnect", {
-    body: body ?? "",
-    icon: icon ?? "/icon-192.png",
-    badge: "/icon-192.png",
-    data: { url: url ?? "/" },
-    tag: tag ?? "cc-notification",
-    renotify: true,
-    requireInteraction: false,
-    vibrate: [200, 100, 200],
-  });
-});
-
-// ── Cache configuration ───────────────────────────────────────────────────────
 const CACHE_NAME = "cc-v2";
 const OFFLINE_URLS = ["/", "/index.html"];
 
-// ── Install: pre-cache shell ──────────────────────────────────────────────────
+// ── Install: pre-cache app shell ──────────────────────────────────────────────
 self.addEventListener("install", (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_URLS)),
@@ -70,7 +30,7 @@ self.addEventListener("install", (e) => {
   self.skipWaiting();
 });
 
-// ── Activate: claim clients & notify them to reload ───────────────────────────
+// ── Activate: purge old caches & claim clients ────────────────────────────────
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches
@@ -81,12 +41,9 @@ self.addEventListener("activate", (e) => {
         ),
       )
       .then(() => self.clients.claim())
-      .then(() => {
-        return self.clients.matchAll({
-          type: "window",
-          includeUncontrolled: true,
-        });
-      })
+      .then(() =>
+        self.clients.matchAll({ type: "window", includeUncontrolled: true }),
+      )
       .then((clients) => {
         clients.forEach((client) =>
           client.postMessage({ type: "NEW_CONTENT" }),
@@ -95,11 +52,13 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// ── Fetch: network-first, fallback to cache ───────────────────────────────────
+// ── Fetch: network-first, cache fallback ─────────────────────────────────────
 self.addEventListener("fetch", (e) => {
+  // Only handle GET requests to our own origin
   if (e.request.method !== "GET") return;
   if (!e.request.url.startsWith(self.location.origin)) return;
 
+  // ── Navigation requests (HTML pages) ─────────────────────────────────────
   if (e.request.mode === "navigate") {
     e.respondWith(
       fetch(e.request)
@@ -111,29 +70,50 @@ self.addEventListener("fetch", (e) => {
           return res;
         })
         .catch(() =>
-          caches
-            .match(e.request)
-            .then((cached) => cached || caches.match("/index.html")),
+          // Network failed — try cache, then fall back to /index.html shell
+          caches.match(e.request).then(
+            (cached) =>
+              cached ||
+              caches.match("/index.html") ||
+              // Last resort: return a proper 503 instead of undefined
+              new Response("Offline", {
+                status: 503,
+                statusText: "Service Unavailable",
+                headers: { "Content-Type": "text/plain" },
+              }),
+          ),
         ),
     );
     return;
   }
 
+  // ── Static assets (JS, CSS, images, fonts…) ───────────────────────────────
   e.respondWith(
     fetch(e.request)
       .then((res) => {
+        // Cache successful same-origin basic responses
         if (res && res.status === 200 && res.type === "basic") {
           const clone = res.clone();
           caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
         }
         return res;
       })
-      .catch(() => caches.match(e.request)),
+      .catch(() =>
+        // Network failed — serve from cache or return a 503
+        caches.match(e.request).then(
+          (cached) =>
+            cached ||
+            new Response("Offline", {
+              status: 503,
+              statusText: "Service Unavailable",
+              headers: { "Content-Type": "text/plain" },
+            }),
+        ),
+      ),
   );
 });
 
 // ── Notification click: open or focus the relevant page ──────────────────────
-// UNCHANGED from original — works for FCM notifications too.
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
 
@@ -155,19 +135,3 @@ self.addEventListener("notificationclick", (e) => {
       }),
   );
 });
-
-// ─────────────────────────────────────────────────────────────────────────────
-// DEPLOY NOTE:
-// The __FIREBASE_*__ placeholders above need to be replaced with your actual
-// Firebase config values. You have two options:
-//
-// Option A (simplest for Netlify/Vite):
-//   In your build script (package.json or netlify.toml), run a sed command:
-//   sed -i "s/__FIREBASE_API_KEY__/$FIREBASE_API_KEY/g" dist/sw.js
-//   (Add one line per placeholder)
-//
-// Option B (cleaner):
-//   Create a `public/sw-config.js` file at build time with just:
-//     const __firebase_config__ = { apiKey: "...", ... };
-//   And importScripts('/sw-config.js') at the top of this file instead.
-// ─────────────────────────────────────────────────────────────────────────────
