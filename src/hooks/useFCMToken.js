@@ -1,14 +1,4 @@
 // src/hooks/useFCMToken.js
-//
-// Handles the full FCM token lifecycle:
-//   1. Request notification permission
-//   2. Get FCM token from Firebase
-//   3. Upsert token into push_subscriptions (Supabase)
-//   4. Handle token refresh (onTokenRefresh)
-//   5. Delete token on opt-out
-//
-// Designed for free-tier: no polling, all event-driven.
-
 import { useState, useEffect, useCallback } from "react";
 import { getToken, onMessage, deleteToken } from "firebase/messaging";
 import { getMessagingInstance } from "../lib/firebase";
@@ -16,42 +6,82 @@ import { supabase } from "../lib/supabaseClient";
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
-/**
- * @param {string|null} userId — current authenticated user's UUID, or null
- */
 export function useFCMToken(userId) {
   const [token, setToken] = useState(null);
-  const [permission, setPermission] = useState(Notification.permission);
-  const [loading, setLoading] = useState(false);
+  const [permission, setPermission] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "default",
+  );
+  const [loading, setLoading] = useState(true); // true while restoring on mount
   const [error, setError] = useState(null);
 
-  // ── Register / refresh token in Supabase ───────────────────────────────
+  // ── RESTORE token on mount (fixes toggle resetting to OFF after refresh) ────
+  // getToken() does NOT prompt the user — it silently returns the cached
+  // FCM registration token if permission is already granted and the SW push
+  // subscription is still active.
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        if (
+          typeof Notification === "undefined" ||
+          Notification.permission !== "granted"
+        ) {
+          setLoading(false);
+          return;
+        }
+        const messaging = await getMessagingInstance();
+        if (!messaging || cancelled) {
+          setLoading(false);
+          return;
+        }
+
+        const existingToken = await getToken(messaging, {
+          vapidKey: VAPID_KEY,
+        });
+        if (existingToken && !cancelled) {
+          setToken(existingToken);
+          // Keep Supabase in sync — token may have quietly rotated
+          await supabase
+            .from("push_subscriptions")
+            .upsert(
+              { user_id: userId, fcm_token: existingToken },
+              { onConflict: "user_id,fcm_token" },
+            );
+        }
+      } catch (err) {
+        console.warn("[FCM] Could not restore token on mount:", err.message);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   const saveToken = useCallback(
     async (fcmToken) => {
       if (!userId || !fcmToken) return;
-
-      // Upsert: if this device already has a row, update; otherwise insert.
-      // We key on (user_id, fcm_token) to avoid duplicates across devices.
       const { error: upsertError } = await supabase
         .from("push_subscriptions")
         .upsert(
           { user_id: userId, fcm_token: fcmToken },
           { onConflict: "user_id,fcm_token" },
         );
-
-      if (upsertError) {
+      if (upsertError)
         console.error("[FCM] Failed to save token:", upsertError.message);
-      }
     },
     [userId],
   );
 
-  // ── Request permission + get token ─────────────────────────────────────
   const requestPermission = useCallback(async () => {
     if (!userId) return;
     setLoading(true);
     setError(null);
-
     try {
       const messaging = await getMessagingInstance();
       if (!messaging) {
@@ -59,7 +89,6 @@ export function useFCMToken(userId) {
         return;
       }
 
-      // Ask the browser for notification permission
       const result = await Notification.requestPermission();
       setPermission(result);
 
@@ -72,9 +101,7 @@ export function useFCMToken(userId) {
         return;
       }
 
-      // Get the FCM registration token
       const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
-
       if (!fcmToken) {
         setError("Could not get push token. Try again later.");
         return;
@@ -90,46 +117,32 @@ export function useFCMToken(userId) {
     }
   }, [userId, saveToken]);
 
-  // ── Foreground message handler ──────────────────────────────────────────
-  // When the app is open and in focus, FCM delivers messages here instead
-  // of showing a system notification. We show our own in-app notification.
   useEffect(() => {
     if (!userId || permission !== "granted") return;
-
     let unsubscribe;
     (async () => {
       const messaging = await getMessagingInstance();
       if (!messaging) return;
-
       unsubscribe = onMessage(messaging, (payload) => {
-        // Dispatch a custom event so NotificationBell / ToastContext can pick it up
         window.dispatchEvent(
           new CustomEvent("fcm-foreground-message", { detail: payload }),
         );
       });
     })();
-
     return () => unsubscribe?.();
   }, [userId, permission]);
 
-  // ── Opt out / delete token ──────────────────────────────────────────────
   const revokeToken = useCallback(async () => {
     if (!userId || !token) return;
     setLoading(true);
-
     try {
       const messaging = await getMessagingInstance();
-      if (messaging) {
-        await deleteToken(messaging);
-      }
-
-      // Remove from Supabase
+      if (messaging) await deleteToken(messaging);
       await supabase
         .from("push_subscriptions")
         .delete()
         .eq("user_id", userId)
         .eq("fcm_token", token);
-
       setToken(null);
       setPermission("default");
     } catch (err) {
