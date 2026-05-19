@@ -12,10 +12,10 @@
 // unexpected empty space. Used `items-start` instead of `items-stretch` so
 // cards don't stretch to fill artificially tall rows.
 
-import { FeedCard }         from "./FeedCard";
+import { FeedCard } from "./FeedCard";
 import { FeedCardSkeleton } from "./FeedCardSkeleton";
-import { EmptyState }       from "./EmptyState";
-import AdBanner             from "./AdBanner";
+import { EmptyState } from "./EmptyState";
+import AdBanner from "./AdBanner";
 import { Search, Bookmark, Package } from "lucide-react";
 
 // Inject an ad banner every N listing cards (full-width, inside the grid)
@@ -24,7 +24,7 @@ const AD_EVERY_N = 8;
 export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
   if (loading) {
     return (
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-start">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-5 items-start">
         {Array.from({ length: 10 }).map((_, i) => (
           <FeedCardSkeleton key={`skeleton-${i}`} />
         ))}
@@ -74,25 +74,30 @@ export function FeedList({ listings, onListingClick, loading, type = "feed" }) {
         key={item.id}
         item={item}
         onClick={() => onListingClick(item)}
-      />
+      />,
     );
 
     // After every AD_EVERY_N items, inject a full-width ad
     if ((index + 1) % AD_EVERY_N === 0) {
       const adSlotNum = Math.floor((index + 1) / AD_EVERY_N);
+      // IMPORTANT: className="col-span-full" is passed INTO AdBanner so the
+      // full-width grid row only exists when AdBanner actually has an ad to
+      // show. If we wrapped with a <div className="col-span-full"> here, the
+      // div would always occupy a grid row — causing phantom gaps when there
+      // are no ads.
       renderItems.push(
-        // col-span-full makes the ad take the whole row.
-        // With auto-rows-auto this row is only as tall as the AdBanner itself
-        // — no more phantom gap stretching the card rows.
-        <div key={`ad-slot-${adSlotNum}`} className="col-span-full">
-          <AdBanner slot={`feed-mid-${adSlotNum}`} compact />
-        </div>
+        <AdBanner
+          key={`ad-slot-${adSlotNum}`}
+          slot={`feed-mid-${adSlotNum}`}
+          compact
+          className="col-span-full"
+        />,
       );
     }
   });
 
   return (
-    <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 items-start auto-rows-auto">
+    <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-5 items-start auto-rows-auto">
       {renderItems}
     </div>
   );

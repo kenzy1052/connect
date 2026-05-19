@@ -1,18 +1,14 @@
 // supabase/functions/send-push/index.ts
 //
-// REWRITE: Replaced VAPID/RFC 8291 encryption with Firebase Cloud Messaging
-// HTTP v1 API. The public interface (user_id, title, body, url, icon, tag) is
-// identical — no call-site changes needed.
+// UPDATED: Now handles two call shapes:
 //
-// Required Supabase secrets:
-//   FCM_PROJECT_ID   — your Firebase project ID (e.g. "campusconnect-xxx")
-//   FCM_CLIENT_EMAIL — service account email from Firebase JSON
-//   FCM_PRIVATE_KEY  — service account private key (RSA, newlines as \n)
+//   Shape A — Direct call (existing behaviour, unchanged):
+//     { user_id, title, body, url, icon, tag }
 //
-// Set them once with:
-//   supabase secrets set FCM_PROJECT_ID=...
-//   supabase secrets set FCM_CLIENT_EMAIL=...
-//   supabase secrets set FCM_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n..."
+//   Shape B — Database Webhook from push_queue table (new):
+//     { type: "INSERT", record: { user_id, title, body, url, icon, tag, ... } }
+//
+// Everything else (FCM HTTP v1, OAuth2 JWT, stale token cleanup) is unchanged.
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -24,9 +20,6 @@ const CORS = {
 };
 
 // ── Google OAuth2 — get a Bearer token for FCM HTTP v1 ───────────────────────
-//
-// FCM HTTP v1 uses service-account OAuth2 (not API keys).
-// We sign a JWT ourselves using SubtleCrypto — zero npm dependencies.
 
 function base64urlEncode(str: string): string {
   return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
@@ -38,10 +31,6 @@ function base64urlEncodeBytes(bytes: Uint8Array): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 
-/**
- * Build a signed JWT and exchange it for a Google OAuth2 Bearer token.
- * Uses RS256 (RSA + SHA-256) with the service account private key.
- */
 async function getGoogleAccessToken(
   clientEmail: string,
   privateKeyPem: string,
@@ -61,7 +50,6 @@ async function getGoogleAccessToken(
 
   const signingInput = `${header}.${payload}`;
 
-  // Parse PEM → DER
   const pemBody = privateKeyPem
     .replace(
       /-----BEGIN RSA PRIVATE KEY-----|-----END RSA PRIVATE KEY-----/g,
@@ -72,7 +60,6 @@ async function getGoogleAccessToken(
 
   const der = Uint8Array.from(atob(pemBody), (c) => c.charCodeAt(0));
 
-  // Import as PKCS8 (Firebase service account keys are PKCS8)
   const cryptoKey = await crypto.subtle.importKey(
     "pkcs8",
     der.buffer,
@@ -89,7 +76,6 @@ async function getGoogleAccessToken(
 
   const jwt = `${signingInput}.${base64urlEncodeBytes(new Uint8Array(sig))}`;
 
-  // Exchange JWT for Bearer token
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -116,6 +102,7 @@ async function sendFCMMessage(
     url: string;
     icon: string;
     tag: string;
+    traceId: string;
   },
   projectId: string,
   accessToken: string,
@@ -130,11 +117,13 @@ async function sendFCMMessage(
         body: payload.body,
       },
       webpush: {
-        // Data fields are available in the SW's onBackgroundMessage handler
         data: {
           url: payload.url,
           icon: payload.icon,
           tag: payload.tag,
+          title: payload.title,
+          body: payload.body,
+          traceId: payload.traceId,
         },
         notification: {
           title: payload.title,
@@ -144,7 +133,6 @@ async function sendFCMMessage(
           tag: payload.tag,
           requireInteraction: false,
           vibrate: [200, 100, 200],
-          // Click action routes to the listing
           click_action: payload.url,
         },
         fcm_options: {
@@ -163,13 +151,10 @@ async function sendFCMMessage(
     body: JSON.stringify(message),
   });
 
-  if (res.ok) {
-    return { success: true, shouldDelete: false };
-  }
+  if (res.ok) return { success: true, shouldDelete: false };
 
   const errBody = await res.json().catch(() => ({}));
 
-  // 404 (NOT_FOUND) or 400 with UNREGISTERED = stale token, delete it
   const isStale =
     res.status === 404 ||
     (res.status === 400 &&
@@ -192,11 +177,20 @@ serve(async (req) => {
   }
 
   try {
+    // ── Log immediately on entry — visible even if secrets are missing ────
+    console.log("[send-push] ▶ Function invoked. Checking FCM secrets…");
+
     const FCM_PROJECT_ID = Deno.env.get("FCM_PROJECT_ID");
     const FCM_CLIENT_EMAIL = Deno.env.get("FCM_CLIENT_EMAIL");
     const FCM_PRIVATE_KEY = Deno.env.get("FCM_PRIVATE_KEY");
 
     if (!FCM_PROJECT_ID || !FCM_CLIENT_EMAIL || !FCM_PRIVATE_KEY) {
+      console.error(
+        "[send-push] ✗ MISSING SECRETS — set FCM_PROJECT_ID, FCM_CLIENT_EMAIL, FCM_PRIVATE_KEY in Supabase Dashboard → Edge Functions → send-push → Secrets.",
+        `\n  FCM_PROJECT_ID  : ${FCM_PROJECT_ID ? "✓ set" : "✗ MISSING"}`,
+        `\n  FCM_CLIENT_EMAIL: ${FCM_CLIENT_EMAIL ? "✓ set" : "✗ MISSING"}`,
+        `\n  FCM_PRIVATE_KEY : ${FCM_PRIVATE_KEY ? "✓ set" : "✗ MISSING"}`,
+      );
       return new Response(
         JSON.stringify({
           error:
@@ -209,8 +203,42 @@ serve(async (req) => {
       );
     }
 
-    const { user_id, title, body, url, icon, tag } = await req.json();
+    const rawBody = await req.json();
+
+    // ── Normalise: handle both direct calls and Database Webhook payloads ──
+    // Webhook shape: { type: "INSERT", record: { user_id, title, ... } }
+    // Direct shape:  { user_id, title, ... }
+    const params =
+      rawBody?.type === "INSERT" && rawBody?.record ? rawBody.record : rawBody;
+
+    const {
+      user_id,
+      title,
+      body,
+      url,
+      icon,
+      tag,
+      traceId: incomingTraceId,
+    } = params as {
+      user_id: string;
+      title: string;
+      body?: string;
+      url?: string;
+      icon?: string;
+      tag?: string;
+      traceId?: string;
+    };
+
+    // Use the traceId from the caller, or mint a new one for webhook-triggered calls
+    const traceId = incomingTraceId ?? `ef_${Date.now().toString(36)}`;
+    console.log(`[send-push][${traceId}] ▶ STAGE 3/5 — Edge function invoked`, {
+      user_id,
+      title,
+      tag,
+    });
+
     if (!user_id || !title) {
+      console.error(`[send-push][${traceId}] ✗ Missing user_id or title`);
       return new Response(
         JSON.stringify({ error: "user_id and title are required" }),
         {
@@ -225,7 +253,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Fetch all FCM tokens for this user (one per device/browser)
+    // Fetch all FCM tokens for this user
     const { data: subs, error: subsError } = await supabase
       .from("push_subscriptions")
       .select("id, fcm_token")
@@ -233,20 +261,48 @@ serve(async (req) => {
       .not("fcm_token", "is", null);
 
     if (subsError || !subs?.length) {
+      console.warn(
+        `[send-push][${traceId}] ✗ STAGE 3 FAIL — No FCM tokens found for user_id=${user_id}`,
+        subsError?.message ??
+          "push_subscriptions returned 0 rows. Has this user enabled notifications?",
+      );
       return new Response(
         JSON.stringify({
           sent: 0,
+          traceId,
           reason: subsError?.message ?? "no FCM tokens",
         }),
         { headers: { ...CORS, "Content-Type": "application/json" } },
       );
     }
 
-    // Get Google OAuth2 access token (cached for ~1h in production by Deno runtime)
-    // In practice this JWT exchange takes ~200ms — acceptable for a background function.
+    console.log(
+      `[send-push][${traceId}] ✓ Found ${subs.length} FCM token(s) for user_id=${user_id}`,
+    );
+
+    // ── Normalize FCM_PRIVATE_KEY newlines ────────────────────────────────
+    // Secrets dashboards (Supabase, Netlify, Vercel, etc.) store the private
+    // key with literal \n sequences instead of real newlines. If left as-is,
+    // atob() inside getGoogleAccessToken throws "InvalidCharacterError"
+    // because backslash-n is not valid base64 — and that exception bubbles up
+    // as a generic 500 with no helpful message.
+    // Normalise both \\n (double-escaped) and \n (single-escaped) to real newlines.
+    const normalizedPrivateKey = FCM_PRIVATE_KEY.replace(/\\\\n/g, "\n") // double-escaped \\n → real newline
+      .replace(/\\n/g, "\n"); // single-escaped \n  → real newline
+
+    console.log(
+      `[send-push][${traceId}] Calling Google OAuth2 for access token…`,
+      `\n  client_email: ${FCM_CLIENT_EMAIL}`,
+      `\n  key starts with: ${normalizedPrivateKey.slice(0, 36)}…`,
+    );
+
     const accessToken = await getGoogleAccessToken(
       FCM_CLIENT_EMAIL,
-      FCM_PRIVATE_KEY,
+      normalizedPrivateKey,
+    );
+
+    console.log(
+      `[send-push][${traceId}] ✓ STAGE 4a/5 — OAuth2 access token obtained`,
     );
 
     const notifPayload = {
@@ -255,9 +311,9 @@ serve(async (req) => {
       url: url ?? "/",
       icon: icon ?? "/icon-192.png",
       tag: tag ?? "cc-notification",
+      traceId,
     };
 
-    // Send to all tokens in parallel
     const results = await Promise.allSettled(
       subs.map((sub) =>
         sendFCMMessage(
@@ -269,12 +325,34 @@ serve(async (req) => {
       ),
     );
 
-    // Clean up stale tokens (device unregistered or app uninstalled)
+    // Log per-token outcome
+    results.forEach((r, i) => {
+      const tokenSuffix = subs[i].fcm_token?.slice(-8) ?? "????????";
+      if (r.status === "fulfilled") {
+        if (r.value.success) {
+          console.log(
+            `[send-push][${traceId}] ✓ STAGE 4b/5 — FCM accepted token ...${tokenSuffix}`,
+          );
+        } else {
+          console.error(
+            `[send-push][${traceId}] ✗ STAGE 4b/5 — FCM rejected token ...${tokenSuffix}`,
+            r.value.shouldDelete ? "(stale — will delete)" : "",
+          );
+        }
+      } else {
+        console.error(
+          `[send-push][${traceId}] ✗ STAGE 4b/5 — FCM call threw for token ...${tokenSuffix}:`,
+          r.reason,
+        );
+      }
+    });
+
+    // Clean up stale tokens
     const staleIds = results
       .map((r, i) =>
         r.status === "fulfilled" && r.value.shouldDelete ? subs[i].id : null,
       )
-      .filter(Boolean) as number[];
+      .filter(Boolean) as string[];
 
     if (staleIds.length) {
       await supabase.from("push_subscriptions").delete().in("id", staleIds);
@@ -284,11 +362,18 @@ serve(async (req) => {
       (r) => r.status === "fulfilled" && r.value.success,
     ).length;
 
+    console.log(
+      `[send-push][${traceId}] ═══ SUMMARY ═══`,
+      `sent=${sent}/${subs.length}`,
+      `stale_removed=${staleIds.length}`,
+    );
+
     return new Response(
       JSON.stringify({
         sent,
         total: subs.length,
         stale_removed: staleIds.length,
+        traceId,
       }),
       { headers: { ...CORS, "Content-Type": "application/json" } },
     );

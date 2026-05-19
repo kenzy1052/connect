@@ -57,12 +57,28 @@ messaging.onBackgroundMessage((payload) => {
   const icon = data.icon ?? "/icon-192.png";
   const tag = data.tag ?? "cc-notification";
   const url = data.url ?? "/";
+  const traceId = data.traceId ?? "(no traceId)";
+
+  // ── STAGE 5/5 — Service worker received the push ──────────────────────
+  console.log(
+    "[firebase-messaging-sw] ✓ STAGE 5/5 — Background push received!",
+    "\n  traceId:",
+    traceId,
+    "\n  title  :",
+    title,
+    "\n  body   :",
+    body,
+    "\n  tag    :",
+    tag,
+    "\n  url    :",
+    url,
+  );
 
   return self.registration.showNotification(title, {
     body,
     icon,
     badge: "/icon-192.png",
-    data: { url },
+    data: { url, traceId },
     tag,
     renotify: true,
     requireInteraction: false,

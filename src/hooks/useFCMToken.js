@@ -165,6 +165,15 @@ export function useFCMToken(userId) {
       if (!messaging) return;
 
       unsubscribe = onMessage(messaging, (payload) => {
+        const traceId = payload.data?.traceId ?? "(no traceId)";
+        console.log(
+          "%c[FCM] ✓ STAGE 5/5 — Foreground push received!",
+          "color: #16a34a; font-weight: bold",
+          "\n  traceId:",
+          traceId,
+          "\n  payload:",
+          payload,
+        );
         window.dispatchEvent(
           new CustomEvent("fcm-foreground-message", { detail: payload }),
         );

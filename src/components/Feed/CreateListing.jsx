@@ -436,21 +436,129 @@ export function CreateListing({ user, onCancel, onSuccess }) {
             .select("id")
             .eq("role", "admin");
           if (admins?.length) {
-            await Promise.allSettled(
-              admins.map((a) =>
-                supabase.functions.invoke("send-push", {
-                  body: {
-                    user_id: a.id,
-                    title: "New listing posted 📦",
-                    body: `${form.title} — GHS ${form.price || "—"}`,
-                    url: "/admin",
-                    tag: `new-listing-${createdListingId}`,
-                  },
-                }),
-              ),
+            // ── traceId: unique ID to track this notification end-to-end ──
+            // Copy this from the console and search for it in:
+            //   • Supabase Edge Function logs (send-push)
+            //   • Browser console (service worker receipt)
+            const traceId = `notif_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+            console.log(
+              `%c[Notif] ▶ STAGE 1/5 — Firing send-push for ${admins.length} admin(s)`,
+              "color: #7c3aed; font-weight: bold",
+              "\n  traceId :",
+              traceId,
+              "\n  listing :",
+              createdListingId,
+              "\n  admins  :",
+              admins.map((a) => a.id),
+            );
+
+            const results = await Promise.allSettled(
+              admins.map(async (a) => {
+                console.log(
+                  `%c[Notif] ▶ STAGE 2/5 — Invoking send-push for admin ${a.id}`,
+                  "color: #7c3aed",
+                  "\n  traceId:",
+                  traceId,
+                );
+
+                let data, error;
+                try {
+                  ({ data, error } = await supabase.functions.invoke(
+                    "send-push",
+                    {
+                      body: {
+                        traceId,
+                        user_id: a.id,
+                        title: "New listing posted 📦",
+                        body: `${formData.title} — GHS ${formData.price || "—"}`,
+                        url: "/admin",
+                        tag: `new-listing-${createdListingId}`,
+                      },
+                    },
+                  ));
+                } catch (invokeErr) {
+                  // supabase.functions.invoke throws FunctionsFetchError on
+                  // network failures, or when the function crashes before
+                  // returning a parseable response (e.g. atob() throws on a
+                  // malformed FCM private key).
+                  console.error(
+                    `%c[Notif] ✗ INVOKE THREW for admin ${a.id}`,
+                    "color: #ef4444; font-weight: bold",
+                    "\n  traceId  :",
+                    traceId,
+                    "\n  exception:",
+                    invokeErr?.message ?? invokeErr,
+                    "\n  type     :",
+                    invokeErr?.constructor?.name,
+                    "\n  ─── Likely causes ─────────────────────────────────────",
+                    "\n  • Edge function not deployed → run: supabase functions deploy send-push",
+                    "\n  • FCM_PRIVATE_KEY has literal \\n instead of real newlines → atob() throws",
+                    "\n  • Network / CORS error",
+                  );
+                  return { adminId: a.id, data: null, error: invokeErr };
+                }
+
+                if (error) {
+                  console.error(
+                    `%c[Notif] ✗ FAILED — Edge function returned an error for admin ${a.id}`,
+                    "color: #ef4444; font-weight: bold",
+                    "\n  traceId  :",
+                    traceId,
+                    "\n  error    :",
+                    error?.message ?? error,
+                    "\n  status   :",
+                    error?.context?.status ?? "(check edge fn logs)",
+                    "\n  ─── Most common causes ───────────────────────────────",
+                    "\n  500 = FCM secrets not set OR private key has bad newlines",
+                    "\n  401 = Auth header missing or expired",
+                    "\n  404 = Edge function not deployed yet",
+                  );
+                } else {
+                  console.log(
+                    `%c[Notif] ✓ STAGE 3/5 — Edge function responded for admin ${a.id}`,
+                    "color: #16a34a; font-weight: bold",
+                    "\n  traceId:",
+                    traceId,
+                    "\n  result :",
+                    data,
+                    data?.sent === 0
+                      ? "\n  ⚠ ZERO messages sent — check FCM token exists in push_subscriptions for this user_id"
+                      : "",
+                  );
+                }
+                return { adminId: a.id, data, error };
+              }),
+            );
+
+            // Summary
+            const sent = results.filter(
+              (r) => r.status === "fulfilled" && r.value?.data?.sent > 0,
+            ).length;
+            const failed = results.filter(
+              (r) => r.status === "rejected" || r.value?.error,
+            ).length;
+            const zeroSent = results.filter(
+              (r) => r.status === "fulfilled" && r.value?.data?.sent === 0,
+            ).length;
+            console.log(
+              `%c[Notif] ═══ SUMMARY traceId: ${traceId} ═══`,
+              "color: #7c3aed; font-weight: bold",
+              `\n  ✓ delivered: ${sent}`,
+              `\n  ✗ failed   : ${failed}`,
+              `\n  ⚠ zero-sent: ${zeroSent} (FCM token missing or stale)`,
+              "\n  If zero-sent > 0: run this SQL to check tokens:",
+              "\n  SELECT * FROM push_subscriptions WHERE user_id = '<admin_id>';",
+            );
+          } else {
+            console.warn(
+              "[Notif] No admin users found — skipping push notification.",
             );
           }
-        } catch {
+        } catch (e) {
+          console.error(
+            "[Notif] ✗ Unexpected error in notification fire-and-forget:",
+            e,
+          );
           /* never block publish */
         }
       })();
