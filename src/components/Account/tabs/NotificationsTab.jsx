@@ -1,12 +1,15 @@
 // src/components/Account/tabs/NotificationsTab.jsx
 //
-// CHANGE: Replaced the old useNotifications (VAPID) hook with useFCMToken.
-// The UI surface is identical — users see the same toggle to enable/disable
-// push notifications. Under the hood it now registers an FCM token instead
-// of a VAPID subscription.
+// NO CHANGES NEEDED IN THIS FILE.
 //
-// If you had other content in NotificationsTab (email prefs, etc.), merge
-// the FCM section in at the top and keep the rest intact.
+// The toggle persistence bug ("goes to OFF on page refresh") was entirely
+// in useFCMToken.js — the token state wasn't being hydrated from Supabase
+// on mount. That file has been fixed. This component is correct as-is.
+//
+// Left here as confirmation: this component is already wired up correctly.
+// It calls useFCMToken(user?.id), and since useFCMToken now re-hydrates the
+// token from Supabase/Firebase on mount, isEnabled will be true after a
+// refresh as long as the user previously enabled notifications.
 
 import { useAuth } from "../../../context/AuthContext";
 import { useFCMToken } from "../../../hooks/useFCMToken";
