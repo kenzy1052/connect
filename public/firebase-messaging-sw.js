@@ -77,7 +77,14 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(title, {
     body,
     icon,
-    badge: "/icon-192.png",
+    // FIX — status-bar icon showing as a plain grey square:
+    // Android renders the "badge" icon using ONLY its alpha channel as a
+    // silhouette (same as every other app's status-bar icon). icon-192.png
+    // is fully opaque (a colored square with no transparency), so Android
+    // had nothing but a solid block to draw. badge-mono-96.png is a
+    // transparent PNG containing just the white logo mark, so Android can
+    // render it correctly as a small monochrome icon.
+    badge: "/badge-mono-96.png",
     data: { url, traceId },
     tag,
     renotify: true,

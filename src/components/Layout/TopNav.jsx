@@ -68,6 +68,7 @@ export default function TopNav({ onOpenFilters }) {
 
           {/* Search */}
           <form
+            data-tour="tour-search"
             onSubmit={submitSearch}
             className="flex-1 max-w-2xl mx-auto relative"
           >
@@ -89,6 +90,7 @@ export default function TopNav({ onOpenFilters }) {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <Link
               to="/browse"
+              data-tour="tour-browse"
               className={`hidden md:inline-flex items-center gap-1.5 h-10 px-3 rounded-md text-sm font-medium ${hoverBtn}`}
             >
               <Compass size={16} />
@@ -97,6 +99,7 @@ export default function TopNav({ onOpenFilters }) {
 
             <button
               onClick={toggleMode}
+              data-tour="tour-theme"
               aria-label="Toggle light/dark"
               className={`h-10 w-10 grid place-items-center rounded-md ${hoverBtn}`}
             >
@@ -106,6 +109,7 @@ export default function TopNav({ onOpenFilters }) {
             {user && (
               <button
                 onClick={() => navigate("/create")}
+                data-tour="tour-post"
                 className="hidden sm:inline-flex items-center gap-1.5 gradient-brand text-[hsl(var(--primary-fg))] h-10 px-3.5 rounded-md text-sm font-semibold transition-all shadow-[0_2px_10px_hsl(var(--primary)/0.35)]"
               >
                 <PlusCircle size={16} />
@@ -118,6 +122,7 @@ export default function TopNav({ onOpenFilters }) {
             {!user && (
               <button
                 onClick={() => navigate("/signin")}
+                data-tour="tour-signin"
                 className="inline-flex items-center gap-1.5 gradient-brand text-[hsl(var(--primary-fg))] h-10 px-3.5 rounded-md text-sm font-semibold"
               >
                 <LogIn size={16} />
@@ -129,6 +134,7 @@ export default function TopNav({ onOpenFilters }) {
               <div className="relative" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => setMenuOpen((p) => !p)}
+                  data-tour="tour-account"
                   className={`w-10 h-10 rounded-md overflow-hidden grid place-items-center
                                bg-surface-2 border border-app text-main font-semibold text-sm transition-all
                                ${menuOpen ? "ring-2 ring-brand" : "hover:border-[hsl(var(--primary))] hover:bg-surface-hover"}`}
@@ -203,6 +209,7 @@ export default function TopNav({ onOpenFilters }) {
           <div className="flex items-center gap-1">
             <button
               onClick={toggleMode}
+              data-tour="tour-theme"
               aria-label="Toggle light/dark"
               className={`h-9 w-9 grid place-items-center rounded-md ${hoverBtn}`}
             >
@@ -214,6 +221,7 @@ export default function TopNav({ onOpenFilters }) {
             {!user && (
               <button
                 onClick={() => navigate("/signin")}
+                data-tour="tour-signin"
                 className="inline-flex items-center gap-1 gradient-brand text-[hsl(var(--primary-fg))] h-9 px-3 rounded-md text-sm font-semibold ml-1"
               >
                 <LogIn size={14} />
@@ -228,6 +236,7 @@ export default function TopNav({ onOpenFilters }) {
               >
                 <button
                   onClick={() => setMenuOpen((p) => !p)}
+                  data-tour="tour-account"
                   className={`w-9 h-9 rounded-md overflow-hidden grid place-items-center
                                bg-surface-2 border border-app text-main font-semibold text-sm transition-all
                                ${menuOpen ? "ring-2 ring-brand" : "hover:bg-surface-hover"}`}
@@ -291,6 +300,7 @@ export default function TopNav({ onOpenFilters }) {
         <div className="flex items-center gap-2 px-4 pb-3">
           <form
             onSubmit={submitSearch}
+            data-tour="tour-search"
             className="flex-1 flex items-center gap-2 relative"
           >
             <div className="flex-1 relative">

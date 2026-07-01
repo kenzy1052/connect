@@ -162,6 +162,7 @@ export default function NotificationBell() {
   return (
     <div ref={wrapRef} className="relative z-[170]">
       <button
+        data-tour="tour-bell"
         onClick={() => setOpen((o) => !o)}
         className={`relative h-10 w-10 grid place-items-center rounded-md transition-colors ${
           open

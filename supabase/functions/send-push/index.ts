@@ -129,7 +129,11 @@ async function sendFCMMessage(
           title: payload.title,
           body: payload.body,
           icon: payload.icon,
-          badge: "/icon-192.png",
+          // FIX — Android status-bar showed a solid square instead of the
+          // logo silhouette: badge must be a transparent PNG (alpha-only
+          // mask), not the opaque colored app icon. See firebase-messaging-sw.js
+          // for the matching fix on the client-side showNotification() call.
+          badge: "/badge-mono-96.png",
           tag: payload.tag,
           requireInteraction: false,
           vibrate: [200, 100, 200],

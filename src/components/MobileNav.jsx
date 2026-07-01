@@ -4,8 +4,8 @@ import { useAuth } from "../context/AuthContext";
 
 const items = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/browse", icon: Compass, label: "Browse" },
-  { to: "/create", icon: PlusCircle, label: "Sell", accent: true },
+  { to: "/browse", icon: Compass, label: "Browse", tourId: "tour-browse" },
+  { to: "/create", icon: PlusCircle, label: "Sell", accent: true, tourId: "tour-post" },
   { to: "/account/saved", icon: Bookmark, label: "Saved" },
   { to: "/account", icon: Settings, label: "Settings" },
 ];
@@ -29,7 +29,7 @@ export default function MobileNav() {
         paddingTop: "0.5rem",
       }}
     >
-      {items.map(({ to, icon: Icon, label, accent }) => {
+      {items.map(({ to, icon: Icon, label, accent, tourId }) => {
         const isActive =
           to === "/account"
             ? isSettingsActive
@@ -42,6 +42,7 @@ export default function MobileNav() {
             key={to}
             to={to}
             end
+            data-tour={tourId}
             className={`flex flex-col items-center gap-1 px-3 py-1 transition-colors ${
               isActive && !accent ? "text-brand" : "text-faint"
             }`}

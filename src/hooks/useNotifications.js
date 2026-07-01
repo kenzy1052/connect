@@ -333,7 +333,10 @@ export function useNotifications() {
         await readyReg.showNotification("CampusConnect", {
           body: "You'll now receive alerts even when the app is closed! 🎉",
           icon: "/icon-192.png",
-          badge: "/icon-192.png",
+          // FIX — was "/icon-192.png" (opaque), which Android rendered as a
+          // solid square in the status bar. See firebase-messaging-sw.js for
+          // the full explanation.
+          badge: "/badge-mono-96.png",
           tag: "cc-welcome",
         });
         console.log("[Push] ✅ Welcome notification shown.");

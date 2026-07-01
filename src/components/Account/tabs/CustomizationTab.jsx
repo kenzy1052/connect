@@ -1,6 +1,7 @@
-import { Palette, Sun, Moon, Type, Maximize2, Check } from "lucide-react";
+import { Palette, Sun, Moon, Type, Maximize2, Check, Compass } from "lucide-react";
 import { useTheme } from "../../../context/ThemeContext";
 import { SettingsHeader, SettingsSection } from "../SettingsPrimitives";
+import { useOnboardingTour } from "../../../context/OnboardingContext";
 
 export default function CustomizationTab() {
   const {
@@ -9,6 +10,7 @@ export default function CustomizationTab() {
     font, setFont, fonts,
     scale, setScale, scales,
   } = useTheme();
+  const { start } = useOnboardingTour();
 
   return (
     <div className="space-y-8" >
@@ -134,6 +136,21 @@ export default function CustomizationTab() {
             );
           })}
         </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="App tour"
+        description="Replay the guided walkthrough of search, posting, notifications and settings."
+        icon={Compass}
+      >
+        <button
+          type="button"
+          onClick={start}
+          className="inline-flex items-center gap-2 h-10 px-4 rounded-md bg-surface-2 hover:bg-surface-hover border border-app text-sm font-semibold text-main transition-colors"
+        >
+          <Compass size={15} />
+          Replay app tour
+        </button>
       </SettingsSection>
     </div>
   );

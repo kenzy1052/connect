@@ -19,6 +19,9 @@ import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import RecommendedSection from "./components/Feed/RecommendedSection";
 // ── Task 5: Beta feedback toast ───────────────────────────────────────────────
 import BetaToast from "./components/BetaToast";
+// ── First-visit guided tour ───────────────────────────────────────────────────
+import OnboardingTour from "./components/Onboarding/OnboardingTour";
+import { OnboardingProvider } from "./context/OnboardingContext";
 
 export default function MainApp() {
   const { user, profile } = useAuth();
@@ -105,6 +108,7 @@ export default function MainApp() {
   const visibleListings = isHome ? listings.slice(0, 30) : listings;
 
   return (
+    <OnboardingProvider>
     <div className="app-root min-h-screen bg-app text-main font-sans flex flex-col">
       <NavShell>
         <TopNav />
@@ -221,6 +225,10 @@ export default function MainApp() {
        * Clicking body → /support (WhatsApp feedback form).
        */}
       <BetaToast />
+
+      {/* First-visit product tour — spotlights nav elements one at a time */}
+      <OnboardingTour />
     </div>
+    </OnboardingProvider>
   );
 }

@@ -400,7 +400,9 @@ serve(async (req) => {
       body: body ?? "",
       url: url ?? "/",
       icon: icon ?? "/logo.png",
-      badge: "/logo.png",
+      // FIX — solid-square status-bar icon on Android; needs a transparent
+      // monochrome PNG, not the opaque colored logo.
+      badge: "/badge-mono-96.png",
       tag: tag ?? "cc-notification",
     });
 
