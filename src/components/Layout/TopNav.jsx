@@ -79,6 +79,7 @@ export default function TopNav({ onOpenFilters }) {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search listings"
               placeholder="Search listings, services, students…"
               className="w-full bg-surface-2 border border-app focus:border-[hsl(var(--primary))]
                          text-sm text-main placeholder:text-faint
@@ -311,6 +312,7 @@ export default function TopNav({ onOpenFilters }) {
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
+                aria-label="Search listings"
                 placeholder="Search listings…"
                 className="w-full bg-surface-2 border border-app focus:border-[hsl(var(--primary))]
                            text-sm text-main placeholder:text-faint

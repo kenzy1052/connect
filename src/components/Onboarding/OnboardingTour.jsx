@@ -3,7 +3,7 @@
 // First-visit guided tour. Spotlights one nav element at a time (via
 // data-tour="..." attributes placed on the relevant buttons/links) with a
 // small tooltip card explaining what it does. Auto-runs once per browser
-// (see useOnboardingTour) and can be replayed from Settings → Personalizatio.
+// (see useOnboardingTour) and can be replayed from Settings → Customization.
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X, ArrowRight, ArrowLeft } from "lucide-react";
@@ -27,8 +27,17 @@ function getVisibleTarget(id) {
 }
 
 export default function OnboardingTour() {
-  const { active, step, stepIndex, steps, isFirst, isLast, next, back, skip } =
-    useOnboardingTour();
+  const {
+    active,
+    step,
+    stepIndex,
+    steps,
+    isFirst,
+    isLast,
+    next,
+    back,
+    skip,
+  } = useOnboardingTour();
 
   const [rect, setRect] = useState(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -114,12 +123,13 @@ export default function OnboardingTour() {
       {/* Dimmed backdrop, with a spotlight cutout around the current target */}
       {rect ? (
         <div
-          className="fixed pointer-events-none rounded-xl transition-[top,left,width,height] duration-200 ease-out"
+          className="fixed top-0 left-0 pointer-events-none rounded-xl transition-transform duration-200 ease-out will-change-transform"
           style={{
-            top: rect.top - SPOTLIGHT_PADDING,
-            left: rect.left - SPOTLIGHT_PADDING,
             width: rect.width + SPOTLIGHT_PADDING * 2,
             height: rect.height + SPOTLIGHT_PADDING * 2,
+            transform: `translate(${rect.left - SPOTLIGHT_PADDING}px, ${
+              rect.top - SPOTLIGHT_PADDING
+            }px)`,
             boxShadow: "0 0 0 9999px rgba(3, 6, 15, 0.72)",
             border: "2px solid hsl(var(--primary))",
           }}
@@ -135,8 +145,8 @@ export default function OnboardingTour() {
       <div
         ref={cardRef}
         onClick={(e) => e.stopPropagation()}
-        className="fixed w-[calc(100vw-28px)] max-w-[340px] premium-card p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200"
-        style={{ top: pos.top, left: pos.left }}
+        className="fixed top-0 left-0 w-[calc(100vw-28px)] max-w-[340px] premium-card p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-200 will-change-transform"
+        style={{ transform: `translate(${pos.left}px, ${pos.top}px)` }}
       >
         <button
           onClick={skip}

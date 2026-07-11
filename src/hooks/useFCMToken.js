@@ -22,8 +22,7 @@
 //   isEnabled, but this makes the hook itself idempotent too.
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getToken, onMessage, deleteToken } from "firebase/messaging";
-import { getMessagingInstance } from "../lib/firebase";
+import { getMessagingInstance, fcm } from "../lib/firebase";
 import { supabase } from "../lib/supabaseClient";
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
@@ -51,6 +50,7 @@ export function useFCMToken(userId) {
         // First try to get the token directly from Firebase (fastest path)
         const messaging = await getMessagingInstance();
         if (messaging) {
+          const { getToken } = await fcm();
           const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
           if (fcmToken) {
             setToken(fcmToken);
@@ -138,6 +138,7 @@ export function useFCMToken(userId) {
       }
 
       // Get the FCM registration token
+      const { getToken } = await fcm();
       const fcmToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
       if (!fcmToken) {
@@ -164,6 +165,7 @@ export function useFCMToken(userId) {
       const messaging = await getMessagingInstance();
       if (!messaging) return;
 
+      const { onMessage } = await fcm();
       unsubscribe = onMessage(messaging, (payload) => {
         const traceId = payload.data?.traceId ?? "(no traceId)";
         console.log(
@@ -191,6 +193,7 @@ export function useFCMToken(userId) {
     try {
       const messaging = await getMessagingInstance();
       if (messaging) {
+        const { deleteToken } = await fcm();
         await deleteToken(messaging);
       }
 

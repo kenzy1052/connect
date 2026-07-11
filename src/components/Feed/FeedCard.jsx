@@ -12,6 +12,7 @@
 
 import SaveButton from "./SaveButton";
 import { formatPrice } from "../../utils/formatPrice";
+import { thumb, thumbSrcSet } from "../../utils/imageUrl";
 
 /**
  * FeedCard — minimalist marketplace card (AliExpress style).
@@ -52,11 +53,16 @@ export function FeedCard({ item, onClick }) {
       {/* Image */}
       <div className="relative w-full aspect-square bg-surface-2 overflow-hidden">
         <img
-          src={item.image_url || "/placeholder.png"}
+          src={thumb(item.image_url) || "/placeholder.png"}
+          srcSet={thumbSrcSet(item.image_url)}
+          sizes="(max-width: 640px) 45vw, 180px"
           onError={(e) => {
             if (e.currentTarget.src.endsWith("/placeholder.png")) return;
+            e.currentTarget.srcset = "";
             e.currentTarget.src = "/placeholder.png";
           }}
+          width={320}
+          height={320}
           loading="lazy"
           decoding="async"
           className="w-full h-full object-cover"

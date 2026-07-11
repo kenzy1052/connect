@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+
+# Keep crawlers out of app-only / auth areas
+Disallow: /account
+Disallow: /admin
+Disallow: /auth
+Disallow: /reset-password
+
+Sitemap: https://connect-c.netlify.app/sitemap.xml

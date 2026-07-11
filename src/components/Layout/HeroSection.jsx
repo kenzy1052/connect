@@ -123,12 +123,14 @@ export default function HeroSection() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            aria-label="Search listings"
             placeholder="Search listings, services, sellers…"
             className="flex-1 bg-transparent text-sm outline-none py-2.5 pr-1"
             style={{ color: "hsl(var(--text))" }}
           />
           <button
             type="submit"
+            aria-label="Search"
             className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.97] hover:brightness-110"
             style={{ background: "hsl(var(--primary))", color: "white" }}
           >

@@ -31,6 +31,15 @@ export default defineConfig({
             if (id.includes("@supabase")) {
               return "vendor-supabase";
             }
+            // Firebase is heavy and only used for push notifications.
+            // Keep it in its own chunk so it stays lazy (dynamic import
+            // in src/lib/firebase.js) and never bloats the initial load.
+            if (id.includes("firebase") || id.includes("@firebase")) {
+              return "vendor-firebase";
+            }
+            if (id.includes("@sentry")) {
+              return "vendor-sentry";
+            }
             if (id.includes("lucide-react") || id.includes("framer-motion")) {
               return "vendor-ui";
             }
