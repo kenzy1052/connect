@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import { cleanTitle, cleanDescription } from "../../utils/text";
 import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../context/AuthContext";
+import { getAttributeFields, buildAttributesPayload } from "../../config/listingAttributes";
 
 /* ─── Atoms ────────────────────────────────────────────────────────── */
 function ProTip({ icon: Icon = Lightbulb, children }) {
@@ -137,11 +139,103 @@ function ImagePreview({ files, coverIndex, setCoverIndex, onRemove }) {
   );
 }
 
+function ListingPreviewCard({
+  title,
+  images,
+  coverIndex,
+  parentName,
+  subcategoryName,
+  listingType,
+  price,
+  priceMin,
+  priceMax,
+  negotiable,
+  condition,
+}) {
+  const coverFile = images[Math.min(coverIndex, images.length - 1)];
+  const coverUrl = coverFile ? URL.createObjectURL(coverFile) : null;
+
+  let priceLabel = "Contact for price";
+  if (listingType === "product") {
+    if (price) priceLabel = `GH₵ ${Number(price).toLocaleString()}`;
+    if (negotiable) priceLabel += " · Negotiable";
+  } else {
+    if (priceMin && priceMax)
+      priceLabel = `GH₵ ${priceMin} – ${priceMax}`;
+    else if (price) priceLabel = `GH₵ ${Number(price).toLocaleString()}`;
+  }
+
+  return (
+    <div className="premium-border rounded-md bg-surface overflow-hidden">
+      <div className="px-4 py-2.5 border-b border-app flex items-center gap-2">
+        <Sparkles className="w-3.5 h-3.5 text-brand" />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-faint">
+          Live preview — this is how buyers will see it
+        </p>
+      </div>
+      <div className="flex gap-4 p-4">
+        <div className="w-24 h-24 rounded-md bg-app border border-app shrink-0 overflow-hidden grid place-items-center">
+          {coverUrl ? (
+            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <ImagePlus className="w-5 h-5 text-faint" />
+          )}
+        </div>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <p className="text-sm font-semibold text-main truncate">
+            {title || "Your listing title"}
+          </p>
+          <p className="text-[11px] text-faint truncate">
+            {parentName
+              ? subcategoryName
+                ? `${parentName} → ${subcategoryName}`
+                : parentName
+              : "No category selected yet"}
+          </p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold text-price">{priceLabel}</span>
+            {condition && (
+              <span className="text-[10px] font-semibold uppercase tracking-wider bg-brand-soft text-brand px-2 py-0.5 rounded-sm">
+                {condition}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── Main ─────────────────────────────────────────────────────────── */
 export function CreateListing({ user, onCancel, onSuccess }) {
   const navigate = useNavigate();
   const toast = useToast();
+  const { profile } = useAuth();
   const MAX_IMAGES = 3;
+
+  // ── Seller gate ──────────────────────────────────────────────────────────
+  // `is_seller` lives on the profile; useAuth() doesn't expose a refetch,
+  // so track a local override for the "just became a seller" transition
+  // rather than waiting on a full context refresh.
+  const [localIsSeller, setLocalIsSeller] = useState(null);
+  const [becomingSeller, setBecomingSeller] = useState(false);
+  const isSeller = localIsSeller ?? profile?.is_seller ?? false;
+
+  const handleBecomeSeller = async () => {
+    if (!user?.id) return;
+    setBecomingSeller(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_seller: true, seller_since: new Date().toISOString() })
+      .eq("id", user.id);
+    setBecomingSeller(false);
+    if (error) {
+      toast.error("Couldn't set up your seller account. Try again.");
+      return;
+    }
+    setLocalIsSeller(true);
+    toast.success("You're all set to sell on CampusConnect!");
+  };
 
   // ── Restore form state if returning from /account/numbers ──────────────────
   const DRAFT_KEY = "cc.create.draft";
@@ -161,7 +255,9 @@ export function CreateListing({ user, onCancel, onSuccess }) {
       price: "",
       price_min: "",
       price_max: "",
-      category_id: "",
+      parent_category_id: "", // top-level category, e.g. Electronics
+      category_id: "", // subcategory (leaf) — this is what actually gets stored
+      attributes: {}, // category-specific fields, e.g. { brand, warranty }
       condition: "",
       negotiable: false,
     },
@@ -196,7 +292,10 @@ export function CreateListing({ user, onCancel, onSuccess }) {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   useEffect(() => {
-    const CACHE_KEY = "cc.categories.v1";
+    // Own cache key (distinct from the flat "cc.categories.top.v1" used by
+    // filters/hero) since the posting form needs the FULL hierarchy —
+    // top-level categories AND their subcategories.
+    const CACHE_KEY = "cc.categories.hierarchy.v1";
     const ONE_HOUR = 60 * 60 * 1000;
     async function fetchCategories() {
       const cached = localStorage.getItem(CACHE_KEY);
@@ -309,7 +408,8 @@ export function CreateListing({ user, onCancel, onSuccess }) {
     const description = cleanDescription(formData.description);
     if (title.length < 3)
       return toast.error("Title must be at least 3 characters");
-    if (!formData.category_id) return toast.error("Select a category");
+    if (!formData.parent_category_id) return toast.error("Select a category");
+    if (!formData.category_id) return toast.error("Select a subcategory");
     if (formData.listing_type === "product" && !formData.condition)
       return toast.error("Select item condition");
     if (images.length === 0) return toast.error("Upload at least 1 image");
@@ -374,6 +474,10 @@ export function CreateListing({ user, onCancel, onSuccess }) {
                 : null,
             negotiable:
               formData.listing_type === "product" ? formData.negotiable : false,
+            attributes: buildAttributesPayload(
+              attributeFields,
+              formData.attributes,
+            ),
           },
         ])
         .select()
@@ -423,6 +527,13 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         .eq("id", listing.id);
       if (activateError)
         throw new Error("Activation failed: " + activateError.message);
+
+      if (listing.moderation_status === "approved") {
+        toast.success("Listing published!");
+      } else {
+        toast.success("Listing submitted — it'll be live once an admin reviews it.");
+      }
+
       // Clear the saved draft on successful publish
       try {
         sessionStorage.removeItem("cc.create.draft");
@@ -584,9 +695,78 @@ export function CreateListing({ user, onCancel, onSuccess }) {
     );
   }
 
-  const filteredCategories = categories.filter(
-    (c) => c.type === formData.listing_type,
+  if (!isSeller) {
+    return (
+      <div className="max-w-md mx-auto text-center py-12 px-4">
+        <div className="w-16 h-16 rounded-2xl gradient-brand grid place-items-center mx-auto mb-5 shadow-[0_8px_24px_hsl(var(--primary)/0.3)]">
+          <Package size={28} className="text-[hsl(var(--primary-fg))]" />
+        </div>
+        <h2 className="text-lg font-semibold text-main">
+          Set up your seller account
+        </h2>
+        <p className="text-sm text-muted mt-2">
+          Every CampusConnect account can buy — to post a listing, you'll
+          need seller access first. It's instant and free.
+        </p>
+        <div className="mt-6 space-y-2.5 text-left bg-surface border border-app rounded-xl p-4">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck size={15} className="text-brand shrink-0" />
+            <p className="text-xs text-muted">
+              Your listings build your trust score over time
+            </p>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <BadgeCheck size={15} className="text-brand shrink-0" />
+            <p className="text-xs text-muted">
+              Trusted sellers get listings approved instantly
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={handleBecomeSeller}
+          disabled={becomingSeller}
+          className="mt-6 w-full gradient-brand text-[hsl(var(--primary-fg))] font-semibold py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        >
+          {becomingSeller ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <>
+              Become a Seller <ArrowRight size={16} />
+            </>
+          )}
+        </button>
+        <button
+          onClick={onCancel}
+          className="mt-3 w-full text-xs text-faint hover:text-muted transition-all py-2"
+        >
+          Not right now
+        </button>
+      </div>
+    );
+  }
+
+  // ── Category hierarchy helpers ──────────────────────────────────────────
+  const topLevelCategories = categories.filter(
+    (c) => c.type === formData.listing_type && !c.parent_id,
   );
+  const subcategories = categories.filter(
+    (c) => c.parent_id === formData.parent_category_id,
+  );
+  const selectedParent = categories.find(
+    (c) => c.id === formData.parent_category_id,
+  );
+  const selectedSubcategory = categories.find(
+    (c) => c.id === formData.category_id,
+  );
+  const attributeFields = getAttributeFields(
+    formData.listing_type,
+    selectedParent?.slug,
+  );
+
+  // Steps renumber themselves automatically so conditional sections
+  // (Condition, Details) never leave a gap or duplicate a number.
+  let stepCounter = 0;
+  const nextStep = () => ++stepCounter;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -611,6 +791,22 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         </div>
       </header>
 
+      <div className="mb-5">
+        <ListingPreviewCard
+          title={formData.title}
+          images={images}
+          coverIndex={coverIndex}
+          parentName={selectedParent?.name}
+          subcategoryName={selectedSubcategory?.name}
+          listingType={formData.listing_type}
+          price={formData.price}
+          priceMin={formData.price_min}
+          priceMax={formData.price_max}
+          negotiable={formData.negotiable}
+          condition={formData.condition}
+        />
+      </div>
+
       <form onSubmit={handleSubmit} className="space-y-5">
         {contactGate && (
           <div id="contact-gate-banner">
@@ -630,7 +826,7 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         {/* Step 1 — Type */}
         <FormSection>
           <StepHeader
-            num={1}
+            num={nextStep()}
             title="What are you listing?"
             hint="Pick the closest match."
           />
@@ -652,6 +848,9 @@ export function CreateListing({ user, onCancel, onSuccess }) {
                       price_min: "",
                       price_max: "",
                       condition: "",
+                      parent_category_id: "",
+                      category_id: "",
+                      attributes: {},
                     })
                   }
                   className={`flex items-center justify-center gap-2 py-2.5 rounded-sm text-xs font-semibold uppercase tracking-wider transition-colors ${
@@ -671,7 +870,7 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         {/* Step 2 — Title + Desc */}
         <FormSection>
           <StepHeader
-            num={2}
+            num={nextStep()}
             title="Tell buyers what it is"
             hint="Specific titles get 3× more clicks."
           />
@@ -698,38 +897,135 @@ export function CreateListing({ user, onCancel, onSuccess }) {
           />
         </FormSection>
 
-        {/* Step 3 — Category */}
+        {/* Step — Category */}
         <FormSection>
           <StepHeader
-            num={3}
+            num={nextStep()}
             title="Category"
-            hint="Helps buyers discover your listing."
+            hint="Pick a category, then narrow it down — this helps buyers find exactly what they need."
           />
-          <div className="relative">
-            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
-            <select
-              value={formData.category_id}
-              onChange={(e) =>
-                setFormData({ ...formData, category_id: e.target.value })
-              }
-              className="w-full bg-app border border-app rounded-md pl-10 pr-9 py-2.5 text-sm text-main appearance-none outline-none focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.18)] transition-all"
-            >
-              <option value="">Select a category</option>
-              {filteredCategories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+              <select
+                value={formData.parent_category_id}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    parent_category_id: e.target.value,
+                    category_id: "",
+                    attributes: {},
+                  })
+                }
+                className="w-full bg-app border border-app rounded-md pl-10 pr-9 py-2.5 text-sm text-main appearance-none outline-none focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.18)] transition-all"
+              >
+                <option value="">Select a category</option>
+                {topLevelCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+              <select
+                value={formData.category_id}
+                disabled={!formData.parent_category_id}
+                onChange={(e) =>
+                  setFormData({ ...formData, category_id: e.target.value })
+                }
+                className="w-full bg-app border border-app rounded-md pl-10 pr-9 py-2.5 text-sm text-main appearance-none outline-none focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.18)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <option value="">
+                  {formData.parent_category_id
+                    ? "Select a subcategory"
+                    : "Choose a category first"}
                 </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+                {subcategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+            </div>
           </div>
+          {selectedParent && selectedSubcategory && (
+            <p className="text-[11px] text-faint">
+              Listing under{" "}
+              <span className="text-muted font-medium">
+                {selectedParent.name} → {selectedSubcategory.name}
+              </span>
+            </p>
+          )}
         </FormSection>
 
-        {/* Step 4 — Condition (products) */}
+        {/* Step — Details (dynamic, category-specific attributes) */}
+        {attributeFields.length > 0 && (
+          <FormSection>
+            <StepHeader
+              num={nextStep()}
+              title="Details"
+              hint={`A few specifics for ${selectedParent?.name || "this category"} listings.`}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {attributeFields.map((field) =>
+                field.type === "select" ? (
+                  <div key={field.key} className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted">
+                      {field.label}
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={formData.attributes[field.key] || ""}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            attributes: {
+                              ...formData.attributes,
+                              [field.key]: e.target.value,
+                            },
+                          })
+                        }
+                        className="w-full bg-app border border-app rounded-md pl-3 pr-9 py-2.5 text-sm text-main appearance-none outline-none focus:border-[hsl(var(--primary))] focus:ring-2 focus:ring-[hsl(var(--primary)/0.18)] transition-all"
+                      >
+                        <option value="">Select…</option>
+                        {field.options.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint pointer-events-none" />
+                    </div>
+                  </div>
+                ) : (
+                  <Input
+                    key={field.key}
+                    label={field.label}
+                    placeholder={field.placeholder}
+                    value={formData.attributes[field.key] || ""}
+                    onChange={(v) =>
+                      setFormData({
+                        ...formData,
+                        attributes: { ...formData.attributes, [field.key]: v },
+                      })
+                    }
+                  />
+                ),
+              )}
+            </div>
+          </FormSection>
+        )}
+
+        {/* Step — Condition (products) */}
         {formData.listing_type === "product" && (
           <FormSection>
             <StepHeader
-              num={4}
+              num={nextStep()}
               title="Condition"
               hint="Be honest — buyers reward transparency."
             />
@@ -785,7 +1081,7 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         {/* Step 5 — Pricing */}
         <FormSection>
           <StepHeader
-            num={formData.listing_type === "product" ? 5 : 4}
+            num={nextStep()}
             title="Pricing"
             hint={
               formData.listing_type === "product"
@@ -845,7 +1141,7 @@ export function CreateListing({ user, onCancel, onSuccess }) {
         {/* Step 6 — Photos */}
         <FormSection>
           <StepHeader
-            num={formData.listing_type === "product" ? 6 : 5}
+            num={nextStep()}
             title="Photos"
             hint="Up to 3 images. The first one becomes the cover."
           />

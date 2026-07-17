@@ -41,6 +41,9 @@ const DashboardTab = lazy(
 );
 const ProfileTab = lazy(() => import("./components/Account/tabs/ProfileTab"));
 const NumbersTab = lazy(() => import("./components/Account/tabs/NumbersTab"));
+const MessagesTab = lazy(
+  () => import("./components/Account/tabs/MessagesTab"),
+);
 const MyListingsTab = lazy(
   () => import("./components/Account/tabs/MyListingsTab"),
 );
@@ -382,6 +385,7 @@ export default function AppRouter() {
                 <Route path="dashboard" element={<DashboardTab />} />
                 <Route path="profile" element={<ProfileTab />} />
                 <Route path="numbers" element={<NumbersTab />} />
+                <Route path="messages" element={<MessagesTab />} />
                 <Route path="mylistings" element={<MyListingsTab />} />
                 <Route path="saved" element={<SavedTab />} />
                 <Route path="security" element={<SecurityTab />} />

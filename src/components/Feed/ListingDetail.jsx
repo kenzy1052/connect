@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   Star,
   CheckCircle2,
+  MessageCircle,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
@@ -28,6 +29,7 @@ import ReportModal from "./ReportModal";
 import SaveButton from "./SaveButton";
 import Reviews from "./Reviews";
 import SuggestedItems from "./SuggestedItems";
+import ChatPanel from "../Chat/ChatPanel";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
@@ -95,6 +97,7 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
   const [images, setImages] = useState([]);
   const [current, setCurrent] = useState(0);
   const [showContact, setShowContact] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [phones, setPhones] = useState([]);
   const [whatsapp, setWhatsapp] = useState(null);
@@ -775,6 +778,17 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
                 Contact Seller
               </p>
 
+              {/* Message on CampusConnect — listing-scoped, in-app chat */}
+              {!isOwnListing && (
+                <button
+                  onClick={() => requireAuth(() => setShowChat(true))}
+                  className="flex items-center justify-center gap-2.5 w-full bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white py-3.5 rounded-xl font-black text-sm transition-all border border-slate-700/80"
+                >
+                  <MessageCircle size={17} />
+                  Message on CampusConnect
+                </button>
+              )}
+
               {/* WhatsApp CTA — indigo accent matching price */}
               {whatsappLink && (
                 <a
@@ -901,6 +915,22 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
           listing={listingData}
           onClose={() => setShowReport(false)}
           onSuccess={() => setReportStatus("submitted")}
+        />
+      )}
+
+      {showChat && user && (
+        <ChatPanel
+          open={showChat}
+          onClose={() => setShowChat(false)}
+          listingId={listingData.id}
+          listingTitle={listingData.title}
+          currentUserId={user.id}
+          otherPartyName={
+            listingData.seller_name ||
+            listingData.seller_profile?.business_name ||
+            listingData.seller_profile?.full_name ||
+            "Seller"
+          }
         />
       )}
     </>

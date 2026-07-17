@@ -14,6 +14,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
 import AdminFaqTab from "./AdminFaqTab";
 import AdminAdsTab from "./AdminAdsTab";
+import AdminModerationTab from "./AdminModerationTab";
 import AdminReportsPage from "./Reports/AdminReportsPage";
 import ConfirmModal from "../UI/ConfirmModal";
 import {
@@ -43,6 +44,12 @@ const TABS = [
     label: "Reports",
     description: "Review flagged listings",
     isDanger: true,
+  },
+  {
+    id: "moderation",
+    icon: ListChecks,
+    label: "Moderation",
+    description: "Approve or reject new listings",
   },
   {
     id: "ads",
@@ -257,6 +264,7 @@ export default function AdminPanel() {
         </div>
       )}
       {tab === "reports" && <AdminReportsPage />}
+      {tab === "moderation" && <AdminModerationTab />}
       {tab === "ads"     && <AdminAdsTab />}
       {tab === "faq"     && <AdminFaqTab />}
       {tab === "audit"   && (

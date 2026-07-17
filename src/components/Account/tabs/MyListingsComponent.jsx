@@ -41,6 +41,8 @@ export default function MyListings({ onCreateListing }) {
     if (listing.is_hidden) return "Hidden";
     if (!listing.is_active && listing.sold_at) return "Sold";
     if (!listing.is_active) return "Removed";
+    if (listing.moderation_status === "pending") return "Pending Review";
+    if (listing.moderation_status === "rejected") return "Rejected";
     return "Active";
   };
 
@@ -48,6 +50,8 @@ export default function MyListings({ onCreateListing }) {
     if (listing.is_hidden) return "text-red-400";
     if (!listing.is_active)
       return listing.sold_at ? "text-slate-400" : "text-red-400";
+    if (listing.moderation_status === "pending") return "text-amber-400";
+    if (listing.moderation_status === "rejected") return "text-red-400";
     return "text-emerald-400";
   };
 

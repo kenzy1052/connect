@@ -82,18 +82,23 @@ export function useDiscoveryFeed() {
   const listingsCountRef  = useRef(0);
 
   // ── Categories ─────────────────────────────────────────────────────────
+  // NOTE: as of the category-hierarchy migration, `categories` can contain
+  // subcategories (parent_id NOT NULL). Filters/hero/nav were built for a
+  // flat top-level list, so we deliberately fetch only parent_id IS NULL
+  // here. The posting form (CreateListing.jsx) fetches the full hierarchy
+  // separately under its own cache key.
   useEffect(() => {
-    const cached = localStorage.getItem("cc.categories.v1");
+    const cached = localStorage.getItem("cc.categories.top.v1");
     if (cached) {
       try {
         const { ts, data } = JSON.parse(cached);
         if (Date.now() - ts < 60 * 60 * 1000) { setCategories(data); return; }
       } catch {}
     }
-    supabase.from("categories").select("*").then(({ data }) => {
+    supabase.from("categories").select("*").is("parent_id", null).then(({ data }) => {
       if (data) {
         setCategories(data);
-        localStorage.setItem("cc.categories.v1", JSON.stringify({ ts: Date.now(), data }));
+        localStorage.setItem("cc.categories.top.v1", JSON.stringify({ ts: Date.now(), data }));
       }
     });
   }, []);
