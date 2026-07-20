@@ -1,5 +1,5 @@
 import { Link, NavLink } from "react-router-dom";
-import { SlidersHorizontal, HelpCircle, Package } from "lucide-react";
+import { SlidersHorizontal, HelpCircle, Package, MessageCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 /**
@@ -34,11 +34,16 @@ export default function SecondaryBar({ onFilterClick }) {
           <HelpCircle size={14} /> FAQ / Help
         </NavLink>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
           {user && (
-            <Link to="/account/mylistings" className={btnBase}>
-              <Package size={14} /> My Listings
-            </Link>
+            <>
+              <Link to="/messages" className={btnBase}>
+                <MessageCircle size={14} /> Messages
+              </Link>
+              <Link to="/account/mylistings" className={btnBase}>
+                <Package size={14} /> My Listings
+              </Link>
+            </>
           )}
         </div>
       </div>

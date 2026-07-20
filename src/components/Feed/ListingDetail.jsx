@@ -5,7 +5,7 @@
  */
 import { Helmet } from "react-helmet-async";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Share2,
   MoreHorizontal,
@@ -29,7 +29,6 @@ import ReportModal from "./ReportModal";
 import SaveButton from "./SaveButton";
 import Reviews from "./Reviews";
 import SuggestedItems from "./SuggestedItems";
-import ChatPanel from "../Chat/ChatPanel";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import Fullscreen from "yet-another-react-lightbox/plugins/fullscreen";
@@ -97,7 +96,7 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
   const [images, setImages] = useState([]);
   const [current, setCurrent] = useState(0);
   const [showContact, setShowContact] = useState(false);
-  const [showChat, setShowChat] = useState(false);
+  const navigate = useNavigate();
   const [showReport, setShowReport] = useState(false);
   const [phones, setPhones] = useState([]);
   const [whatsapp, setWhatsapp] = useState(null);
@@ -781,7 +780,24 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
               {/* Message on CampusConnect — listing-scoped, in-app chat */}
               {!isOwnListing && (
                 <button
-                  onClick={() => requireAuth(() => setShowChat(true))}
+                  onClick={() =>
+                    requireAuth(() => {
+                      const params = new URLSearchParams({
+                        listing: listingData.id,
+                        title: listingData.title,
+                        seller: listingData.seller_id,
+                        sellerName:
+                          listingData.seller_name ||
+                          listingData.seller_profile?.business_name ||
+                          listingData.seller_profile?.full_name ||
+                          "Seller",
+                      });
+                      if (listingData.seller_avatar_url) {
+                        params.set("sellerAvatar", listingData.seller_avatar_url);
+                      }
+                      navigate(`/messages?${params.toString()}`);
+                    })
+                  }
                   className="flex items-center justify-center gap-2.5 w-full bg-slate-800 hover:bg-slate-700 active:scale-[0.98] text-white py-3.5 rounded-xl font-black text-sm transition-all border border-slate-700/80"
                 >
                   <MessageCircle size={17} />
@@ -915,22 +931,6 @@ export default function ListingDetail({ listing, listingId, onBack, onOpen }) {
           listing={listingData}
           onClose={() => setShowReport(false)}
           onSuccess={() => setReportStatus("submitted")}
-        />
-      )}
-
-      {showChat && user && (
-        <ChatPanel
-          open={showChat}
-          onClose={() => setShowChat(false)}
-          listingId={listingData.id}
-          listingTitle={listingData.title}
-          currentUserId={user.id}
-          otherPartyName={
-            listingData.seller_name ||
-            listingData.seller_profile?.business_name ||
-            listingData.seller_profile?.full_name ||
-            "Seller"
-          }
         />
       )}
     </>

@@ -221,9 +221,64 @@ export function CreateListing({ user, onCancel, onSuccess }) {
   const [becomingSeller, setBecomingSeller] = useState(false);
   const isSeller = localIsSeller ?? profile?.is_seller ?? false;
 
+  // A seller needs a way for buyers to reach them outside the app — check
+  // for an existing contact_numbers row before letting them complete
+  // sign-up as a seller. If they don't have one, capture it right here
+  // instead of bouncing them to a different settings page.
+  const [hasContact, setHasContact] = useState(null); // null = still checking
+  const [sellerPhone, setSellerPhone] = useState("");
+
+  useEffect(() => {
+    if (!user?.id || isSeller) return;
+    supabase
+      .from("contact_numbers")
+      .select("type")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        setHasContact(
+          (data || []).some((c) => c.type === "phone" || c.type === "whatsapp"),
+        );
+      });
+  }, [user?.id, isSeller]);
+
+  const validatePhone = (num) => {
+    const digits = num.replace(/\D/g, "");
+    return digits.startsWith("0") ? digits.length === 10 : digits.length === 9;
+  };
+  const normalizePhone = (num) => {
+    let digits = num.replace(/\D/g, "");
+    if (digits.startsWith("0")) digits = digits.slice(1);
+    if (digits.startsWith("233")) digits = digits.slice(3);
+    return digits;
+  };
+
   const handleBecomeSeller = async () => {
     if (!user?.id) return;
-    setBecomingSeller(true);
+
+    // No contact number on file yet — save the one they just entered
+    // (same table/shape NumbersTab uses) before proceeding.
+    if (!hasContact) {
+      if (!sellerPhone.trim() || !validatePhone(sellerPhone)) {
+        toast.error("Enter a valid phone number (e.g. 024 123 4567)");
+        return;
+      }
+      setBecomingSeller(true);
+      const { error: contactError } = await supabase.from("contact_numbers").insert({
+        user_id: user.id,
+        type: "whatsapp",
+        phone_number: normalizePhone(sellerPhone),
+        is_primary: false,
+      });
+      if (contactError) {
+        setBecomingSeller(false);
+        toast.error("Couldn't save that number. Try again.");
+        return;
+      }
+      setHasContact(true);
+    } else {
+      setBecomingSeller(true);
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({ is_seller: true, seller_since: new Date().toISOString() })
@@ -722,16 +777,42 @@ export function CreateListing({ user, onCancel, onSuccess }) {
             </p>
           </div>
         </div>
+
+        {hasContact === false && (
+          <div className="mt-4 text-left">
+            <label className="text-xs font-medium text-muted">
+              WhatsApp / phone number
+            </label>
+            <p className="text-[11px] text-faint mt-0.5 mb-1.5">
+              Buyers need a way to reach you — this is required to sell.
+            </p>
+            <div className="flex rounded-md overflow-hidden border border-app focus-within:border-[hsl(var(--primary))] focus-within:ring-2 focus-within:ring-[hsl(var(--primary)/0.18)] transition-all bg-app">
+              <div className="px-3 flex items-center text-muted text-sm font-medium border-r border-app shrink-0 bg-surface-2">
+                +233
+              </div>
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="024 123 4567"
+                value={sellerPhone}
+                onChange={(e) => setSellerPhone(e.target.value)}
+                className="flex-1 px-3 py-2.5 bg-transparent text-main outline-none placeholder:text-faint text-sm"
+              />
+            </div>
+          </div>
+        )}
+
         <button
           onClick={handleBecomeSeller}
-          disabled={becomingSeller}
+          disabled={becomingSeller || hasContact === null}
           className="mt-6 w-full gradient-brand text-[hsl(var(--primary-fg))] font-semibold py-3 rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {becomingSeller ? (
+          {becomingSeller || hasContact === null ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <>
-              Become a Seller <ArrowRight size={16} />
+              {hasContact === false ? "Save & Become a Seller" : "Become a Seller"}{" "}
+              <ArrowRight size={16} />
             </>
           )}
         </button>

@@ -14,7 +14,6 @@ import {
   ChevronRight,
   ChevronLeft,
   Settings,
-  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -23,7 +22,6 @@ export const TABS = [
   { to: "/account/profile", label: "Profile", icon: User },
   { to: "/account/numbers", label: "Contact Information", icon: Phone },
   { to: "/account/mylistings", label: "My Listings", icon: Package },
-  { to: "/account/messages", label: "Messages", icon: MessageCircle },
   { to: "/account/saved", label: "Saved", icon: Heart },
   { to: "/account/security", label: "Password Update", icon: Lock },
   { to: "/account/notifications", label: "Notifications", icon: Bell },

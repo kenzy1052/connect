@@ -41,9 +41,7 @@ const DashboardTab = lazy(
 );
 const ProfileTab = lazy(() => import("./components/Account/tabs/ProfileTab"));
 const NumbersTab = lazy(() => import("./components/Account/tabs/NumbersTab"));
-const MessagesTab = lazy(
-  () => import("./components/Account/tabs/MessagesTab"),
-);
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
 const MyListingsTab = lazy(
   () => import("./components/Account/tabs/MyListingsTab"),
 );
@@ -379,13 +377,13 @@ export default function AppRouter() {
             <Route element={<RequireAuth />}>
               <Route path="create" element={<CreateRoute />} />
               <Route path="admin" element={<AdminRoute />} />
+              <Route path="messages" element={<MessagesPage />} />
 
               <Route path="account" element={<AccountLayout />}>
                 <Route index element={<AccountIndex />} />
                 <Route path="dashboard" element={<DashboardTab />} />
                 <Route path="profile" element={<ProfileTab />} />
                 <Route path="numbers" element={<NumbersTab />} />
-                <Route path="messages" element={<MessagesTab />} />
                 <Route path="mylistings" element={<MyListingsTab />} />
                 <Route path="saved" element={<SavedTab />} />
                 <Route path="security" element={<SecurityTab />} />
