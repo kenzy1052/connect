@@ -217,7 +217,7 @@ function ToastContainer({ toasts, onDismiss }) {
         aria-atomic="false"
         style={{
           position: "fixed",
-          bottom: "24px",
+          top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
           zIndex: 9999,
@@ -226,6 +226,7 @@ function ToastContainer({ toasts, onDismiss }) {
           gap: "8px",
           alignItems: "center",
           pointerEvents: "none",
+          width: "min(92vw, 420px)",
         }}
       >
         {toasts.map((t) => (

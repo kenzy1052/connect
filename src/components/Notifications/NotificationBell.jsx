@@ -7,6 +7,7 @@ import {
   ShieldAlert,
   FileText,
   Megaphone,
+  ClipboardCheck,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import { useAuth } from "../../context/AuthContext";
@@ -23,11 +24,13 @@ import { useAuth } from "../../context/AuthContext";
  */
 
 const TYPE_META = {
-  faq:     { Icon: MessageSquare, color: "text-brand" },
-  saved:   { Icon: Heart,         color: "text-rose-500" },
-  report:  { Icon: ShieldAlert,   color: "text-amber-400" },
-  admin:   { Icon: Megaphone,     color: "text-[hsl(var(--accent))]" },
-  default: { Icon: FileText,      color: "text-muted" },
+  faq:             { Icon: MessageSquare,  color: "text-brand" },
+  saved:           { Icon: Heart,          color: "text-rose-500" },
+  report:          { Icon: ShieldAlert,    color: "text-amber-400" },
+  report_new:      { Icon: ShieldAlert,    color: "text-amber-400" },
+  listing_pending: { Icon: ClipboardCheck, color: "text-amber-400" },
+  admin:           { Icon: Megaphone,      color: "text-[hsl(var(--accent))]" },
+  default:         { Icon: FileText,       color: "text-muted" },
 };
 
 function timeAgo(d) {

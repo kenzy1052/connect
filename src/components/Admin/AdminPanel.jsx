@@ -98,18 +98,20 @@ export default function AdminPanel() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [usersRes, listingsCountRes, usersCountRes, reportsCountRes] =
+    const [usersRes, listingsCountRes, usersCountRes, reportsCountRes, pendingCountRes] =
       await Promise.all([
         supabase.from("profiles").select("*").order("trust_score", { ascending: true }),
         supabase.from("listings").select("*", { count: "exact", head: true }),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase.from("reports").select("*", { count: "exact", head: true }).eq("is_resolved", false),
+        supabase.from("listings").select("*", { count: "exact", head: true }).eq("moderation_status", "pending"),
       ]);
     if (usersRes.data) setUsers(usersRes.data);
     setStats({
       listings: listingsCountRes.count ?? 0,
       users:    usersCountRes.count ?? 0,
       reports:  reportsCountRes.count ?? 0,
+      pending:  pendingCountRes.count ?? 0,
     });
     setLoading(false);
   };
@@ -298,10 +300,11 @@ export default function AdminPanel() {
     <div className="space-y-4">
       {/* Stats strip */}
       {stats && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {[
             { label: "Listings", value: stats.listings, icon: ListChecks },
             { label: "Users",    value: stats.users,    icon: UsersIcon },
+            { label: "Pending",  value: stats.pending,  icon: ListChecks, isDanger: stats.pending > 0 },
             { label: "Reports",  value: stats.reports,  icon: Flag, isDanger: stats.reports > 0 },
           ].map((s) => (
             <div
@@ -332,7 +335,10 @@ export default function AdminPanel() {
         {TABS.map((t) => {
           const TabIcon = t.icon;
           const isReports = t.id === "reports";
-          const hasBadge  = isReports && stats?.reports > 0;
+          const isModeration = t.id === "moderation";
+          const hasBadge = (isReports && stats?.reports > 0) || (isModeration && stats?.pending > 0);
+          const badgeCount = isModeration ? stats?.pending : stats?.reports;
+          const effectiveIsDanger = isModeration ? hasBadge : t.isDanger;
           return (
             <button
               key={t.id}
@@ -347,7 +353,7 @@ export default function AdminPanel() {
               <div
                 className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  background: t.isDanger
+                  background: effectiveIsDanger
                     ? "hsl(var(--danger)/0.1)"
                     : "hsl(var(--primary)/0.1)",
                 }}
@@ -355,7 +361,7 @@ export default function AdminPanel() {
                 <TabIcon
                   size={20}
                   style={{
-                    color: t.isDanger ? "hsl(var(--danger))" : "hsl(var(--primary))",
+                    color: effectiveIsDanger ? "hsl(var(--danger))" : "hsl(var(--primary))",
                   }}
                 />
               </div>
@@ -372,7 +378,7 @@ export default function AdminPanel() {
                         color: "hsl(var(--danger))",
                       }}
                     >
-                      {stats.reports}
+                      {badgeCount}
                     </span>
                   )}
                 </div>
@@ -436,10 +442,11 @@ export default function AdminPanel() {
 
       {/* ── Stats cards (desktop only — mobile shows them inside menu) ── */}
       {stats && (
-        <div className="hidden md:grid grid-cols-3 gap-3">
+        <div className="hidden md:grid grid-cols-4 gap-3">
           {[
             { label: "Total Listings", value: stats.listings, icon: ListChecks },
             { label: "Total Users",    value: stats.users,    icon: UsersIcon },
+            { label: "Pending Approval", value: stats.pending, icon: ListChecks, isDanger: stats.pending > 0, onClick: () => setTab("moderation") },
             { label: "Pending Reports", value: stats.reports, icon: Flag, isDanger: stats.reports > 0, onClick: () => setTab("reports") },
           ].map((s) => (
             <div

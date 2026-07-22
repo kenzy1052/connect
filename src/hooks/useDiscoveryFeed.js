@@ -137,6 +137,7 @@ export function useDiscoveryFeed() {
             .eq("is_active", true)
             .eq("is_hidden", false)
             .eq("is_deleted", false)
+            .eq("moderation_status", "approved")
             .or(orParts.join(","));
 
           if (filter !== "all") q = q.eq("listing_type", filter);
@@ -159,7 +160,8 @@ export function useDiscoveryFeed() {
             .select("*")
             .eq("is_active", true)
             .eq("is_hidden", false)
-            .eq("is_deleted", false);
+            .eq("is_deleted", false)
+            .eq("moderation_status", "approved");
 
           if (minPrice != null) query = query.or(`price.gte.${minPrice},price_min.gte.${minPrice}`);
           if (maxPrice != null) query = query.or(`price.lte.${maxPrice},price_max.lte.${maxPrice}`);
@@ -279,6 +281,7 @@ export function useDiscoveryFeed() {
             .eq("is_active", true)
             .eq("is_hidden", false)
             .eq("is_deleted", false)
+            .eq("moderation_status", "approved")
             .maybeSingle();
 
           if (data) {

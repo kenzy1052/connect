@@ -154,7 +154,9 @@ export default function MainApp() {
              screens the chat list + thread stretched to the full
              viewport width instead of matching the rest of the app. */
           <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
-            <div className="w-full max-w-7xl mx-auto flex-1 min-h-0 flex flex-col">
+            {/* pb reserves room for the fixed MobileNav (md:hidden) so it
+                doesn't sit on top of the chat composer on mobile. */}
+            <div className="w-full max-w-7xl mx-auto flex-1 min-h-0 flex flex-col pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
               <Outlet context={outletCtx} />
             </div>
           </main>

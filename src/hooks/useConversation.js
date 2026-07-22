@@ -229,12 +229,31 @@ export function useConversation({
   // Uses clear_person_chat RPC: messages/conversations have no participant
   // UPDATE or DELETE policy, so a direct .delete() call here would silently
   // affect zero rows under RLS.
+  //
+  // Voice attachments are deleted FIRST via the Storage API — Supabase
+  // blocks direct SQL DELETE against storage.objects ("Direct deletion
+  // from storage tables is not allowed"), so a DB-only delete would either
+  // fail outright or leave orphaned files. This is the only path that
+  // actually satisfies that requirement.
   const clearMessages = useCallback(async () => {
     if (!conversation?.id) return { error: "No conversation" };
     const otherId =
       sellerId ||
       (conversation.buyer_id === currentUserId ? conversation.seller_id : conversation.buyer_id);
     if (!otherId) return { error: "Unknown participant" };
+
+    const { data: voiceRows } = await supabase
+      .from("messages")
+      .select("voice_path, conversation:conversations!inner(buyer_id,seller_id)")
+      .not("voice_path", "is", null)
+      .or(
+        `and(conversation.buyer_id.eq.${currentUserId},conversation.seller_id.eq.${otherId}),and(conversation.seller_id.eq.${currentUserId},conversation.buyer_id.eq.${otherId})`,
+      );
+    const voicePaths = (voiceRows || []).map((r) => r.voice_path).filter(Boolean);
+    if (voicePaths.length > 0) {
+      await supabase.storage.from("voice-messages").remove(voicePaths);
+    }
+
     const { error: rpcErr } = await supabase.rpc("clear_person_chat", {
       p_other_id: otherId,
     });
@@ -249,6 +268,19 @@ export function useConversation({
       sellerId ||
       (conversation.buyer_id === currentUserId ? conversation.seller_id : conversation.buyer_id);
     if (!otherId) return { error: "Unknown participant" };
+
+    const { data: voiceRows } = await supabase
+      .from("messages")
+      .select("voice_path, conversation:conversations!inner(buyer_id,seller_id)")
+      .not("voice_path", "is", null)
+      .or(
+        `and(conversation.buyer_id.eq.${currentUserId},conversation.seller_id.eq.${otherId}),and(conversation.seller_id.eq.${currentUserId},conversation.buyer_id.eq.${otherId})`,
+      );
+    const voicePaths = (voiceRows || []).map((r) => r.voice_path).filter(Boolean);
+    if (voicePaths.length > 0) {
+      await supabase.storage.from("voice-messages").remove(voicePaths);
+    }
+
     const { error: rpcErr } = await supabase.rpc("delete_person_conversation", {
       p_other_id: otherId,
     });

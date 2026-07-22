@@ -1,6 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { MessageCircle, Lock, CheckCheck, Check, Mic } from "lucide-react";
+import {
+  MessageCircle,
+  Lock,
+  CheckCheck,
+  Check,
+  Mic,
+  Search,
+  X,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useConversationsList } from "../hooks/useConversation";
 import { isOnline } from "../hooks/usePresence";
@@ -23,7 +31,7 @@ function timeAgo(iso) {
   return d.toLocaleDateString([], { day: "numeric", month: "short" });
 }
 
-function Avatar({ name, url, online, size = 48 }) {
+function Avatar({ name, url, online, size = 52 }) {
   const initial = (name || "?").charAt(0).toUpperCase();
   return (
     <div className="relative shrink-0">
@@ -31,43 +39,34 @@ function Avatar({ name, url, online, size = 48 }) {
         <img
           src={url}
           alt=""
-          className="rounded-full object-cover"
+          className="rounded-md object-cover shrink-0 transition-transform duration-200"
           style={{ width: size, height: size }}
         />
       ) : (
         <div
-          className="rounded-full bg-brand-soft text-brand grid place-items-center font-bold"
+          className="rounded-md bg-brand/10 text-brand font-bold grid place-items-center shrink-0 transition-transform duration-200"
           style={{ width: size, height: size, fontSize: size * 0.38 }}
         >
           {initial}
         </div>
       )}
       {online && (
-        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-surface" />
+        <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 shadow-xs animate-pulse" />
       )}
     </div>
   );
 }
 
-/**
- * WhatsApp-style inbox.
- *   - Desktop: two-pane layout that fills the viewport below the navbar.
- *   - Mobile: single pane; opening a chat replaces the list.
- *   - Rows show avatar, name, last message preview, timestamp, unread count.
- *   - "All" tab clears unread on click immediately (no refresh needed).
- *
- * Layout note: MainApp gives this route a full-height flex column with no
- * padding, so we just need h-full here — no fixed positioning required.
- */
 export default function MessagesPage() {
   const { user } = useAuth();
-  const { conversations, loading, markReadLocally } = useConversationsList(user?.id);
+  const { conversations, loading, markReadLocally } = useConversationsList(
+    user?.id,
+  );
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Entry point from a listing's "Message the seller" button.
-  // Builds a pre-filled draft greeting so the user doesn't start with a blank box.
   useEffect(() => {
     const listingId = searchParams.get("listing");
     if (!listingId || !user?.id) return;
@@ -77,7 +76,6 @@ export default function MessagesPage() {
     const sellerName = searchParams.get("sellerName") || "Seller";
     const sellerAvatar = searchParams.get("sellerAvatar") || null;
 
-    // Pre-fill a polite opener the user can edit before sending.
     const initialDraft = title
       ? `Hi, I'm interested in your listing "${title}". Is it still available?`
       : "Hi, I'm interested in one of your listings. Is it still available?";
@@ -96,10 +94,24 @@ export default function MessagesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const filtered = useMemo(
-    () => (tab === "unread" ? conversations.filter((c) => c.unread) : conversations),
-    [conversations, tab],
-  );
+  const filtered = useMemo(() => {
+    let list =
+      tab === "unread" ? conversations.filter((c) => c.unread) : conversations;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((c) => {
+        const isBuyer = c.buyer_id === user?.id;
+        const other = isBuyer ? c.seller : c.buyer;
+        const name = (
+          other?.business_name ||
+          other?.full_name ||
+          ""
+        ).toLowerCase();
+        return name.includes(q);
+      });
+    }
+    return list;
+  }, [conversations, tab, searchQuery, user?.id]);
 
   const openConversation = (c) => {
     const isBuyer = c.buyer_id === user.id;
@@ -114,72 +126,112 @@ export default function MessagesPage() {
         avatarUrl: other?.avatar_url,
       },
     });
-    // Always mark read on click — clears the dot immediately in all tabs.
-    // Person-scoped so it also clears unread messages sitting in any older
-    // conversation thread with the same person, not just this row's thread.
     markReadLocally(other?.id);
   };
 
-  const unreadCount = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+  const unreadCount = conversations.reduce(
+    (sum, c) => sum + (c.unread_count || 0),
+    0,
+  );
 
   return (
-    /* h-full works because MainApp gives us a flex-1 min-h-0 flex-col parent */
-    <div className="flex h-full bg-app">
-      {/* ── List pane ── */}
+    <div className="flex h-full bg-app overflow-hidden">
+      {/* ── Sidebar List Pane ── */}
       <aside
         className={
-          "w-full sm:w-[340px] shrink-0 border-r border-app flex flex-col bg-surface " +
+          "w-full sm:w-[360px] lg:w-[380px] shrink-0 flex flex-col bg-surface transition-all duration-200 " +
           (selected ? "hidden sm:flex" : "flex")
         }
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-app shrink-0">
-          <h1 className="text-lg font-bold text-main">Chats</h1>
-          <div className="flex items-center gap-1.5">
-            {[
-              { id: "all", label: "All" },
-              { id: "unread", label: "Unread" },
-            ].map((t) => (
+        {/* Header & Tabs */}
+        <div className="px-5 pt-5 pb-3 shrink-0 space-y-3.5 bg-surface z-10">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-extrabold text-main tracking-tight">
+              Messages
+            </h1>
+            <div className="flex items-center gap-1 bg-surface-2 p-1 rounded-md">
+              {[
+                { id: "all", label: "All" },
+                { id: "unread", label: "Unread" },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={
+                    "flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-semibold transition-all duration-150 " +
+                    (tab === t.id
+                      ? "bg-brand text-[hsl(var(--primary-fg))] shadow-2xs"
+                      : "text-muted hover:text-main hover:bg-surface/50")
+                  }
+                >
+                  {t.label}
+                  {t.id === "unread" && unreadCount > 0 && (
+                    <span
+                      className={
+                        "text-[10px] px-1.5 py-0.5 rounded-sm font-bold leading-none transition-colors " +
+                        (tab === t.id
+                          ? "bg-white/20 text-white"
+                          : "bg-brand text-[hsl(var(--primary-fg))]")
+                      }
+                    >
+                      {unreadCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative flex items-center">
+            <Search
+              size={15}
+              className="absolute left-3.5 text-faint pointer-events-none"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-9 pr-8 py-2 bg-surface-2 hover:bg-surface-2/90 focus:bg-surface-2 rounded-md text-xs text-main placeholder:text-faint outline-none transition-all duration-150"
+            />
+            {searchQuery && (
               <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                className={
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all " +
-                  (tab === t.id
-                    ? "bg-brand text-[hsl(var(--primary-fg))]"
-                    : "bg-surface-2 text-muted hover:text-main")
-                }
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 p-1 text-faint hover:text-main rounded-sm transition-colors"
+                aria-label="Clear search"
               >
-                {t.label}
-                {t.id === "unread" && unreadCount > 0 && (
-                  <span
-                    className={
-                      "text-[10px] px-1.5 rounded-full " +
-                      (tab === t.id
-                        ? "bg-white/25"
-                        : "bg-brand text-[hsl(var(--primary-fg))]")
-                    }
-                  >
-                    {unreadCount}
-                  </span>
-                )}
+                <X size={13} />
               </button>
-            ))}
+            )}
           </div>
         </div>
 
-        {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Conversation List */}
+        <div className="flex-1 overflow-y-auto chat-scroll-thin p-2 space-y-1">
           {loading ? (
-            <p className="text-xs text-faint p-4">Loading…</p>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 text-center py-20 px-6">
-              <MessageCircle size={32} className="text-faint" />
-              <p className="text-sm text-faint">
-                {tab === "unread" ? "Nothing unread" : "No conversations yet"}
+            <div className="flex flex-col items-center justify-center py-12 space-y-2">
+              <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs text-faint font-medium">
+                Loading your chats…
               </p>
-              <p className="text-xs text-faint">
-                Open a listing and tap "Message the seller" to start one.
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+              <div className="w-14 h-14 rounded-md bg-surface-2 flex items-center justify-center mb-3 text-faint">
+                <MessageCircle size={26} strokeWidth={1.5} />
+              </div>
+              <p className="text-sm font-semibold text-main">
+                {searchQuery
+                  ? "No matches found"
+                  : tab === "unread"
+                    ? "All caught up!"
+                    : "No messages yet"}
+              </p>
+              <p className="text-xs text-faint mt-1 max-w-[220px] leading-relaxed">
+                {searchQuery
+                  ? `We couldn't find any chats matching "${searchQuery}".`
+                  : "Open any marketplace listing and tap 'Message the seller' to start a conversation."}
               </p>
             </div>
           ) : (
@@ -200,57 +252,90 @@ export default function MessagesPage() {
                   key={c.id}
                   onClick={() => openConversation(c)}
                   className={
-                    "w-full flex items-center gap-3 px-4 py-3 text-left transition-colors " +
-                    (isActive ? "bg-surface-2" : "hover:bg-surface-2")
+                    "w-full flex items-center gap-3.5 p-3 rounded-md text-left transition-all duration-150 group relative select-none " +
+                    (isActive
+                      ? "bg-brand/10 dark:bg-brand/15 font-medium"
+                      : "hover:bg-surface-2")
                   }
                 >
+                  {/* Active Indicator Bar */}
+                  {isActive && (
+                    <span className="absolute left-0 top-2 bottom-2 w-1 bg-brand rounded-r-sm" />
+                  )}
+
                   <Avatar
                     name={otherName}
                     url={other?.avatar_url}
                     online={isOnline(other?.last_seen_at)}
+                    size={48}
                   />
-                  <div className="min-w-0 flex-1">
+
+                  <div className="min-w-0 flex-1 py-0.5">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-main truncate">
+                      <p
+                        className={
+                          "text-sm font-semibold truncate transition-colors " +
+                          (isActive
+                            ? "text-brand dark:text-white"
+                            : "text-main group-hover:text-brand")
+                        }
+                      >
                         {otherName}
                       </p>
                       <span
                         className={
-                          "text-[10px] shrink-0 " +
+                          "text-[11px] shrink-0 font-medium tabular-nums transition-colors " +
                           (c.unread ? "text-brand font-bold" : "text-faint")
                         }
                       >
                         {timeAgo(c.last_message_at)}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-2 mt-0.5">
-                      <div className="flex items-center gap-1 min-w-0 flex-1">
+
+                    <div className="flex items-center justify-between gap-2 mt-1">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
                         {mine &&
                           (c.last_message_read_at ? (
-                            <CheckCheck size={13} className="text-brand shrink-0" />
+                            <CheckCheck
+                              size={14}
+                              className="text-sky-500 shrink-0"
+                            />
                           ) : (
-                            <Check size={13} className="text-faint shrink-0" />
+                            <Check size={14} className="text-faint shrink-0" />
                           ))}
-                        {isVoice && <Mic size={12} className="text-faint shrink-0" />}
+                        {isVoice && (
+                          <Mic
+                            size={13}
+                            className="text-brand shrink-0 animate-pulse"
+                          />
+                        )}
                         <p
                           className={
-                            "text-xs truncate " +
+                            "text-xs truncate leading-relaxed " +
                             (c.unread && !mine
                               ? "text-main font-semibold"
-                              : "text-faint")
+                              : "text-muted group-hover:text-main/90")
                           }
                         >
                           {preview}
                         </p>
                       </div>
-                      {c.unread_count > 0 && (
-                        <span className="text-[10px] font-bold min-w-[18px] h-[18px] px-1.5 rounded-full bg-brand text-[hsl(var(--primary-fg))] grid place-items-center shrink-0">
-                          {c.unread_count > 99 ? "99+" : c.unread_count}
-                        </span>
-                      )}
-                      {c.status === "closed" && (
-                        <Lock size={11} className="text-faint shrink-0" />
-                      )}
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {c.unread_count > 0 && (
+                          <span className="min-w-[20px] h-[20px] px-1.5 rounded-sm bg-brand text-[hsl(var(--primary-fg))] font-bold text-[10px] flex items-center justify-center">
+                            {c.unread_count > 99 ? "99+" : c.unread_count}
+                          </span>
+                        )}
+                        {c.status === "closed" && (
+                          <div
+                            className="p-1 rounded-sm bg-surface-2 text-faint"
+                            title="Closed"
+                          >
+                            <Lock size={11} />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -260,8 +345,13 @@ export default function MessagesPage() {
         </div>
       </aside>
 
-      {/* ── Thread pane ── */}
-      <section className={"flex-1 min-w-0 min-h-0 " + (selected ? "flex" : "hidden sm:flex")}>
+      {/* ── Main Thread Pane ── */}
+      <section
+        className={
+          "flex-1 min-w-0 min-h-0 bg-surface border border-white/5 shadow-xl " +
+          (selected ? "flex" : "hidden sm:flex")
+        }
+      >
         {selected ? (
           <ChatThread
             key={selected.conversationId ?? selected.listingId}
@@ -273,14 +363,15 @@ export default function MessagesPage() {
             onBack={() => setSelected(null)}
           />
         ) : (
-          <div className="hidden sm:flex flex-col items-center justify-center gap-3 w-full text-center px-6 bg-app">
-            <div className="w-16 h-16 rounded-full bg-surface grid place-items-center">
-              <MessageCircle size={28} className="text-faint" />
+          <div className="hidden sm:flex flex-col items-center justify-center gap-4 w-full text-center px-6 bg-app">
+            <div className="w-16 h-16 rounded-md bg-surface flex items-center justify-center text-brand">
+              <MessageCircle size={32} strokeWidth={1.5} />
             </div>
-            <div>
-              <p className="text-sm font-semibold text-main">Your messages</p>
-              <p className="text-xs text-faint mt-1">
-                Select a conversation or start a new one from a listing.
+            <div className="max-w-xs space-y-1">
+              <p className="text-base font-bold text-main">Your Messages</p>
+              <p className="text-xs text-faint leading-relaxed">
+                Select an existing conversation from the left or start a new
+                inquiry directly from a seller's listing.
               </p>
             </div>
           </div>

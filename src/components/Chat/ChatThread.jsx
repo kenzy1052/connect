@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -24,17 +24,56 @@ import { useVoiceRecorder } from "../../hooks/useVoiceRecorder";
 import VoiceMessage from "./VoiceMessage";
 import ConfirmModal from "../UI/ConfirmModal";
 import ReportUserModal from "./ReportUserModal";
+import { useToast } from "../../context/ToastContext";
 
-// Common emojis shown in the quick picker
 const QUICK_EMOJIS = [
-  "😀","😂","😍","🥰","😎","🤔","😅","😭","🙏","👍",
-  "👋","❤️","🔥","✅","💯","🎉","😊","🤣","😢","😡",
-  "🤝","💪","👏","🥳","😴","😬","🤯","🤗","😏","🙄",
-  "🫡","💀","🫶","✨","👀","🎵","😤","🥹","😻","🫠",
+  "😀",
+  "😂",
+  "😍",
+  "🥰",
+  "😎",
+  "🤔",
+  "😅",
+  "😭",
+  "🙏",
+  "👍",
+  "👋",
+  "❤️",
+  "🔥",
+  "✅",
+  "💯",
+  "🎉",
+  "😊",
+  "🤣",
+  "😢",
+  "😡",
+  "🤝",
+  "💪",
+  "👏",
+  "🥳",
+  "😴",
+  "😬",
+  "🤯",
+  "🤗",
+  "😏",
+  "🙄",
+  "🫡",
+  "💀",
+  "🫶",
+  "✨",
+  "👀",
+  "🎵",
+  "😤",
+  "🥹",
+  "😻",
+  "🫠",
 ];
 
 function formatTime(iso) {
-  return new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 function formatDateLabel(iso) {
@@ -46,21 +85,25 @@ function formatDateLabel(iso) {
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
   const daysAgo = Math.floor((now - d) / 86_400_000);
   if (daysAgo < 7) return d.toLocaleDateString([], { weekday: "long" });
-  return d.toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString([], {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 }
 
-function Avatar({ name, url, size = 40 }) {
+function Avatar({ name, url, size = 42 }) {
   const initial = (name || "?").charAt(0).toUpperCase();
   return url ? (
     <img
       src={url}
       alt=""
-      className="rounded-full object-cover shrink-0"
+      className="rounded-md object-cover shrink-0"
       style={{ width: size, height: size }}
     />
   ) : (
     <div
-      className="rounded-full bg-brand-soft text-brand grid place-items-center font-bold shrink-0"
+      className="rounded-md bg-brand/10 text-brand grid place-items-center font-bold shrink-0"
       style={{ width: size, height: size, fontSize: size * 0.4 }}
     >
       {initial}
@@ -73,17 +116,6 @@ function fmtDur(ms) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-/**
- * WhatsApp-style thread pane.
- *
- * Props:
- *   listingId        — UUID of the listing this chat relates to
- *   currentUserId    — auth user's id
- *   otherParty       — { id, name, avatarUrl }
- *   conversationId   — null when starting a brand-new chat
- *   initialDraft     — pre-filled text (from "Message Seller" CTA on a listing)
- *   onBack           — called on mobile back button tap
- */
 export default function ChatThread({
   listingId,
   currentUserId,
@@ -110,40 +142,40 @@ export default function ChatThread({
     sellerId: otherParty?.id,
     enabled: true,
   });
-  const { label: presenceLabel, online } = useOtherPartyPresence(otherParty?.id);
+  const { label: presenceLabel, online } = useOtherPartyPresence(
+    otherParty?.id,
+  );
   const { blockedByMe, blockedByThem, block, unblock } = useBlockStatus(
     currentUserId,
     otherParty?.id,
   );
+  const toast = useToast();
   const reportListingId = conversation?.listing_id || listingId;
 
-  // Draft text — seeded with initialDraft when coming from a listing CTA
   const [draft, setDraft] = useState(initialDraft || "");
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const rec = useVoiceRecorder();
 
-  // Dropdown states
   const [menuOpen, setMenuOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
-  const [confirmAction, setConfirmAction] = useState(null); // { title, message, variant, confirmLabel, onConfirm }
+  const [confirmAction, setConfirmAction] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
 
-  // Ref targets for outside-click dismissal
   const menuRef = useRef(null);
   const emojiRef = useRef(null);
 
-  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
-      if (emojiRef.current && !emojiRef.current.contains(e.target)) setEmojiOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target))
+        setMenuOpen(false);
+      if (emojiRef.current && !emojiRef.current.contains(e.target))
+        setEmojiOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -182,7 +214,6 @@ export default function ChatThread({
 
   const cancelRec = () => rec.cancel();
 
-  // ── Three-dot menu actions ──────────────────────────────────────────────
   const handleClearChat = () => {
     setMenuOpen(false);
     setConfirmAction({
@@ -191,7 +222,12 @@ export default function ChatThread({
       variant: "danger",
       confirmLabel: "Clear chat",
       onConfirm: async () => {
-        await clearMessages();
+        const { error: clearErr } = await clearMessages();
+        if (clearErr) {
+          toast.error(`Couldn't clear the chat: ${clearErr}`);
+          return;
+        }
+        toast.success("Chat cleared");
         onBack?.();
       },
     });
@@ -205,7 +241,12 @@ export default function ChatThread({
       variant: "danger",
       confirmLabel: "Delete",
       onConfirm: async () => {
-        await deleteConversation();
+        const { error: deleteErr } = await deleteConversation();
+        if (deleteErr) {
+          toast.error(`Couldn't delete the conversation: ${deleteErr}`);
+          return;
+        }
+        toast.success("Conversation deleted");
         onBack?.();
       },
     });
@@ -238,55 +279,70 @@ export default function ChatThread({
   };
 
   return (
-    <div className="flex flex-col h-full bg-app min-h-0 w-full">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-3 sm:px-4 py-3 border-b border-app bg-surface shrink-0">
-        {/* Mobile back button */}
-        {onBack && (
-          <button
-            onClick={onBack}
-            className="w-8 h-8 -ml-1 rounded-full grid place-items-center text-muted hover:text-main hover:bg-surface-2 transition-all shrink-0 sm:hidden"
-            aria-label="Back"
+    <div className="flex flex-col h-full bg-app min-h-0 w-full relative">
+      {/* ── Top Navigation & Header ── */}
+      <div className="flex items-center justify-between px-4 py-3 bg-surface shrink-0 z-20">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="w-9 h-9 -ml-1 rounded-md flex items-center justify-center text-muted hover:text-main hover:bg-surface-2 transition-all shrink-0 sm:hidden"
+              aria-label="Back"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
+
+          <Link
+            to={otherParty?.id ? `/seller/${otherParty.id}` : "#"}
+            className="flex items-center gap-3 min-w-0 flex-1 group py-0.5 rounded-md transition-colors"
           >
-            <ArrowLeft size={18} />
-          </button>
-        )}
+            <div className="relative shrink-0">
+              <Avatar
+                name={otherParty?.name}
+                url={otherParty?.avatarUrl}
+                size={42}
+              />
+              {online && (
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs animate-pulse" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-main truncate group-hover:text-brand transition-colors leading-tight">
+                {otherParty?.name || "Conversation"}
+              </p>
+              <p
+                className={`text-[11px] font-medium truncate mt-0.5 ${online ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-faint"}`}
+              >
+                {presenceLabel}
+              </p>
+            </div>
+          </Link>
+        </div>
 
-        {/* Avatar + name + presence — clicking navigates to seller profile */}
-        <Link
-          to={otherParty?.id ? `/seller/${otherParty.id}` : "#"}
-          className="flex items-center gap-3 min-w-0 flex-1 group"
-        >
-          <div className="relative shrink-0">
-            <Avatar name={otherParty?.name} url={otherParty?.avatarUrl} />
-            {online && (
-              <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-surface" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-main truncate group-hover:text-brand transition-colors">
-              {otherParty?.name || "Conversation"}
-            </p>
-            <p className="text-[11px] text-faint truncate">{presenceLabel}</p>
-          </div>
-        </Link>
-
-        {/* ── Three-dot menu ── */}
-        <div className="relative shrink-0" ref={menuRef}>
+        {/* ── Three-Dot Menu (Right-Aligned) ── */}
+        <div className="relative shrink-0 ml-2" ref={menuRef}>
           <button
-            onClick={() => { setMenuOpen((o) => !o); setEmojiOpen(false); }}
-            className="w-9 h-9 rounded-full grid place-items-center text-muted hover:text-main hover:bg-surface-2 transition-all"
+            onClick={() => {
+              setMenuOpen((o) => !o);
+              setEmojiOpen(false);
+            }}
+            className={`w-9 h-9 rounded-md flex items-center justify-center transition-all ${
+              menuOpen
+                ? "bg-surface-2 text-main"
+                : "text-muted hover:text-main hover:bg-surface-2"
+            }`}
             aria-label="More options"
           >
             <MoreVertical size={18} />
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-11 z-[200] w-52 bg-surface border border-app rounded-xl shadow-2xl overflow-hidden py-1">
+            <div className="absolute right-0 top-11 z-[200] w-56 bg-surface rounded-md shadow-xl overflow-hidden py-1.5 animate-in fade-in zoom-in-95 duration-150 origin-top-right">
               <MenuItem icon={<Eraser size={15} />} onClick={handleClearChat}>
                 Clear chat
               </MenuItem>
-              <div className="my-1 border-t border-app" />
+              <div className="my-1 bg-surface-2 h-px w-full" />
               <MenuItem
                 icon={<Trash size={15} />}
                 onClick={handleDeleteChat}
@@ -295,17 +351,15 @@ export default function ChatThread({
                 Delete conversation
               </MenuItem>
               <MenuItem
-                icon={blockedByMe ? <UserCheck size={15} /> : <UserX size={15} />}
+                icon={
+                  blockedByMe ? <UserCheck size={15} /> : <UserX size={15} />
+                }
                 onClick={handleBlockUser}
                 danger={!blockedByMe}
               >
                 {blockedByMe ? "Unblock user" : "Block user"}
               </MenuItem>
-              <MenuItem
-                icon={<Flag size={15} />}
-                onClick={handleReport}
-                danger
-              >
+              <MenuItem icon={<Flag size={15} />} onClick={handleReport} danger>
                 Report user
               </MenuItem>
             </div>
@@ -313,23 +367,38 @@ export default function ChatThread({
         </div>
       </div>
 
-      {/* ── Messages ───────────────────────────────────────────────────── */}
+      {/* ── Messages Feed ── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-3 sm:px-6 py-4 space-y-2 min-h-0"
+        className="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-3 min-h-0 chat-scroll-thin bg-app"
       >
         {loading ? (
-          <div className="h-full grid place-items-center">
-            <p className="text-xs text-faint">Loading conversation…</p>
+          <div className="h-full flex flex-col items-center justify-center space-y-2">
+            <div className="w-5 h-5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs text-faint font-medium">Loading history…</p>
           </div>
         ) : error ? (
-          <div className="h-full grid place-items-center text-center px-6">
-            <p className="text-xs text-[hsl(var(--danger))]">{error}</p>
+          <div className="h-full flex items-center justify-center text-center px-6">
+            <div className="p-4 rounded-md bg-[hsl(var(--danger)/0.08)] max-w-sm">
+              <p className="text-xs text-[hsl(var(--danger))] font-medium">
+                {error}
+              </p>
+            </div>
           </div>
         ) : messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center gap-2 text-center px-6">
-            <MessageCircle size={28} className="text-faint" />
-            <p className="text-xs text-faint">Say hello 👋</p>
+          <div className="h-full flex flex-col items-center justify-center gap-3 text-center px-6">
+            <div className="w-14 h-14 rounded-md bg-surface-2 flex items-center justify-center text-faint">
+              <MessageCircle size={28} strokeWidth={1.5} />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-main">
+                Say hello to {otherParty?.name || "the seller"}! 👋
+              </p>
+              <p className="text-xs text-faint mt-1 max-w-xs">
+                Ask about product availability, item condition, or arrange a
+                secure meetup on campus.
+              </p>
+            </div>
           </div>
         ) : (
           messages.map((m, i) => {
@@ -342,21 +411,23 @@ export default function ChatThread({
             const isVoice = !!m.voice_path;
 
             return (
-              <div key={m.id}>
+              <div key={m.id} className="space-y-3">
                 {showDateDivider && (
-                  <div className="flex items-center justify-center my-3">
-                    <span className="text-[10px] font-semibold text-faint bg-surface-2 px-2.5 py-1 rounded-full">
+                  <div className="flex items-center justify-center my-4">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-faint bg-surface-2 px-3 py-1 rounded-sm">
                       {formatDateLabel(m.created_at)}
                     </span>
                   </div>
                 )}
-                <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div
+                  className={`flex ${mine ? "justify-end" : "justify-start"} group/msg`}
+                >
                   <div
                     className={
-                      "max-w-[78%] rounded-2xl px-3 py-2 text-sm shadow-sm " +
+                      "max-w-[82%] sm:max-w-[72%] px-4 py-2.5 text-sm transition-all duration-150 " +
                       (mine
-                        ? "bg-brand text-[hsl(var(--primary-fg))] rounded-br-md"
-                        : "bg-surface text-main rounded-bl-md border border-app")
+                        ? "bg-brand text-[hsl(var(--primary-fg))] rounded-md"
+                        : "bg-surface text-main rounded-md shadow-2xs")
                     }
                   >
                     {isVoice ? (
@@ -366,22 +437,34 @@ export default function ChatThread({
                         mine={mine}
                       />
                     ) : (
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                      <p className="whitespace-pre-wrap break-words leading-relaxed">
+                        {m.body}
+                      </p>
                     )}
                     <div
                       className={
-                        "flex items-center gap-1 mt-1 " +
-                        (mine ? "justify-end opacity-80" : "text-faint")
+                        "flex items-center gap-1.5 mt-1 select-none " +
+                        (mine
+                          ? "justify-end text-[hsl(var(--primary-fg))/0.8]"
+                          : "justify-end text-faint")
                       }
                     >
-                      <span className="text-[10px]">{formatTime(m.created_at)}</span>
+                      <span className="text-[10px] font-medium tabular-nums">
+                        {formatTime(m.created_at)}
+                      </span>
                       {mine &&
                         (m.read_at ? (
-                          <CheckCheck size={13} className="shrink-0 text-sky-300" />
+                          <CheckCheck
+                            size={14}
+                            className="shrink-0 text-sky-300"
+                          />
                         ) : online ? (
-                          <CheckCheck size={13} className="shrink-0" />
+                          <CheckCheck
+                            size={14}
+                            className="shrink-0 opacity-80"
+                          />
                         ) : (
-                          <Check size={13} className="shrink-0" />
+                          <Check size={14} className="shrink-0 opacity-80" />
                         ))}
                     </div>
                   </div>
@@ -392,65 +475,72 @@ export default function ChatThread({
         )}
       </div>
 
-      {/* ── Composer ───────────────────────────────────────────────────── */}
+      {/* ── Composer Area ── */}
       {blockedByMe ? (
-        <div className="px-4 py-3.5 border-t border-app flex items-center gap-2 text-faint shrink-0 bg-surface">
-          <Ban size={13} />
-          <p className="text-xs">
-            You've blocked {otherParty?.name || "this user"}. Unblock them to send messages.
+        <div className="p-4 flex items-center justify-center gap-2.5 text-faint bg-surface shrink-0">
+          <Ban size={15} className="text-[hsl(var(--danger))]" />
+          <p className="text-xs font-medium">
+            You blocked this user. Unblock them from the top right menu to
+            resume messaging.
           </p>
         </div>
       ) : blockedByThem ? (
-        <div className="px-4 py-3.5 border-t border-app flex items-center gap-2 text-faint shrink-0 bg-surface">
-          <Ban size={13} />
-          <p className="text-xs">You can't reply to this conversation.</p>
+        <div className="p-4 flex items-center justify-center gap-2 text-faint bg-surface shrink-0">
+          <Ban size={15} />
+          <p className="text-xs font-medium">
+            You can no longer reply to this conversation.
+          </p>
         </div>
       ) : isClosed ? (
-        <div className="px-4 py-3.5 border-t border-app flex items-center gap-2 text-faint shrink-0 bg-surface">
-          <Lock size={13} />
-          <p className="text-xs">This listing has been sold — the conversation is closed.</p>
+        <div className="p-4 flex items-center justify-center gap-2 text-faint bg-surface shrink-0">
+          <Lock size={15} className="text-amber-500" />
+          <p className="text-xs font-medium">
+            This listing is closed or sold — conversation is archived.
+          </p>
         </div>
       ) : rec.recording ? (
-        /* Recording in progress */
-        <div className="flex items-center gap-3 px-3 py-3 border-t border-app shrink-0 bg-surface">
+        <div className="flex items-center gap-3 p-3.5 bg-surface shrink-0 shadow-lg animate-in fade-in duration-150">
           <button
             type="button"
             onClick={cancelRec}
-            className="w-10 h-10 shrink-0 rounded-full bg-surface-2 grid place-items-center text-[hsl(var(--danger))] hover:brightness-110 active:scale-95 transition-all"
+            className="w-10 h-10 shrink-0 rounded-md bg-surface-2 flex items-center justify-center text-[hsl(var(--danger))] hover:bg-[hsl(var(--danger)/0.1)] active:scale-95 transition-all"
             aria-label="Cancel recording"
           >
-            <Trash2 size={16} />
+            <Trash2 size={18} />
           </button>
-          <div className="flex-1 flex items-center gap-2 text-sm text-main">
-            <span className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--danger))] animate-pulse" />
-            <span className="tabular-nums">{fmtDur(rec.durationMs)}</span>
-            <span className="text-faint text-xs">Recording…</span>
+          <div className="flex-1 flex items-center gap-2.5 text-sm font-semibold text-main bg-surface-2 px-4 py-2 rounded-md">
+            <span className="w-2.5 h-2.5 rounded-full bg-[hsl(var(--danger))] animate-pulse shrink-0" />
+            <span className="tabular-nums tracking-wide">
+              {fmtDur(rec.durationMs)}
+            </span>
+            <span className="text-faint text-xs font-normal">
+              Recording voice note…
+            </span>
           </div>
           <button
             type="button"
             onClick={stopRec}
-            className="w-10 h-10 shrink-0 rounded-full bg-brand grid place-items-center hover:brightness-110 active:scale-95 transition-all"
+            className="w-10 h-10 shrink-0 rounded-md bg-brand text-[hsl(var(--primary-fg))] flex items-center justify-center shadow-md hover:brightness-110 active:scale-95 transition-all"
             aria-label="Send voice message"
           >
-            <Send size={15} />
+            <Send size={16} />
           </button>
         </div>
       ) : (
-        /* Normal composer */
-        <div className="relative border-t border-app bg-surface shrink-0">
-          {/* Emoji picker popover */}
+        <div className="relative bg-surface shrink-0 p-3">
+          {/* Quick Emoji Popover */}
           {emojiOpen && (
             <div
               ref={emojiRef}
-              className="absolute bottom-full left-0 mb-2 ml-2 z-[200] bg-surface border border-app rounded-2xl shadow-2xl p-3 w-72"
+              className="absolute bottom-full left-3 mb-2 z-[200] bg-surface rounded-md shadow-xl p-3 w-72 animate-in fade-in zoom-in-95 duration-150"
             >
-              <div className="grid grid-cols-8 gap-1">
+              <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto chat-scroll-thin p-1">
                 {QUICK_EMOJIS.map((e) => (
                   <button
                     key={e}
                     type="button"
                     onClick={() => insertEmoji(e)}
-                    className="text-xl w-8 h-8 grid place-items-center rounded-lg hover:bg-surface-2 transition-colors"
+                    className="text-xl w-8 h-8 flex items-center justify-center rounded-sm hover:bg-surface-2 hover:scale-110 active:scale-95 transition-all"
                   >
                     {e}
                   </button>
@@ -461,51 +551,53 @@ export default function ChatThread({
 
           <form
             onSubmit={handleSend}
-            className="flex items-center gap-2 px-3 py-3"
+            className="flex items-end gap-2 max-w-5xl mx-auto"
           >
-            {/* Emoji toggle */}
             <button
               type="button"
-              onClick={() => { setEmojiOpen((o) => !o); setMenuOpen(false); }}
+              onClick={() => {
+                setEmojiOpen((o) => !o);
+                setMenuOpen(false);
+              }}
               className={
-                "w-9 h-9 shrink-0 rounded-full grid place-items-center transition-all " +
+                "w-10 h-10 shrink-0 rounded-md flex items-center justify-center transition-all mb-0.5 " +
                 (emojiOpen
                   ? "bg-brand text-[hsl(var(--primary-fg))]"
                   : "text-muted hover:text-main hover:bg-surface-2")
               }
               aria-label="Emoji"
             >
-              <Smile size={18} />
+              <Smile size={20} />
             </button>
 
-            {/* Text input */}
-            <input
-              ref={inputRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Type a message…"
-              maxLength={2000}
-              className="flex-1 bg-surface-2 border border-app rounded-full px-4 py-2.5 text-sm text-main placeholder:text-faint outline-none focus:border-[hsl(var(--primary))] transition-all"
-            />
+            <div className="flex-1 relative">
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Type a message…"
+                maxLength={2000}
+                className="w-full bg-surface-2 hover:bg-surface-2/90 focus:bg-surface-2 rounded-md px-4 py-2.5 text-sm text-main placeholder:text-faint outline-none transition-all duration-150"
+              />
+            </div>
 
-            {/* Send / Mic */}
             {draft.trim() ? (
               <button
                 type="submit"
                 disabled={sending}
-                className="w-10 h-10 shrink-0 rounded-full bg-brand grid place-items-center disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all"
+                className="w-10 h-10 shrink-0 rounded-md bg-brand text-[hsl(var(--primary-fg))] flex items-center justify-center shadow-md disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110 active:scale-95 transition-all mb-0.5"
                 aria-label="Send"
               >
-                <Send size={15} />
+                <Send size={16} className="ml-0.5" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={startRec}
-                className="w-10 h-10 shrink-0 rounded-full bg-brand grid place-items-center hover:brightness-110 active:scale-95 transition-all"
+                className="w-10 h-10 shrink-0 rounded-md bg-surface-2 text-main hover:bg-brand hover:text-[hsl(var(--primary-fg))] flex items-center justify-center transition-all mb-0.5 active:scale-95"
                 aria-label="Record voice message"
               >
-                <Mic size={16} />
+                <Mic size={18} />
               </button>
             )}
           </form>
@@ -531,20 +623,19 @@ export default function ChatThread({
   );
 }
 
-/** Small helper for the three-dot dropdown rows */
 function MenuItem({ icon, onClick, danger = false, children }) {
   return (
     <button
       onClick={onClick}
       className={
-        "w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors " +
+        "w-full flex items-center justify-end gap-3 px-4 py-2.5 text-xs font-semibold tracking-wide text-right transition-colors " +
         (danger
           ? "text-[hsl(var(--danger))] hover:bg-[hsl(var(--danger)/0.08)]"
           : "text-main hover:bg-surface-2")
       }
     >
+      <span>{children}</span>
       <span className="shrink-0 opacity-70">{icon}</span>
-      {children}
     </button>
   );
 }

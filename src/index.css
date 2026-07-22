@@ -564,6 +564,29 @@ h6 {
   outline: 2px solid hsl(var(--primary));
   outline-offset: 2px;
 }
+
+/* ── Thin scrollbar for chat/message panes ──────────────────────
+   The default app-wide scrollbar (10px) is deliberately chunky for
+   general readability, but it's too heavy inside a tight chat column —
+   this is a slim, low-profile variant just for those areas. */
+.chat-scroll-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.chat-scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-scroll-thin::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+.chat-scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-faint));
+}
+.chat-scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
 ::selection {
   background: hsl(var(--primary) / 0.28);
   color: hsl(var(--text));

@@ -22,7 +22,9 @@ export default function VoiceMessage({ path, durationMs, mine }) {
   const [url, setUrl] = useState(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const audioRef = useRef(null);
+  const waveRef = useRef(null);
 
   useEffect(() => {
     let ok = true;
@@ -43,6 +45,33 @@ export default function VoiceMessage({ path, durationMs, mine }) {
     }
   };
 
+  // Seek to whatever point on the waveform was tapped/dragged.
+  const seekFromClientX = (clientX) => {
+    const el = waveRef.current;
+    const audio = audioRef.current;
+    if (!el || !audio) return;
+    const rect = el.getBoundingClientRect();
+    const fraction = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    const duration = audio.duration || (durationMs ? durationMs / 1000 : 0);
+    if (!duration) return;
+    audio.currentTime = fraction * duration;
+    setProgress(fraction);
+  };
+
+  const handlePointerDown = (e) => {
+    if (!url) return;
+    setDragging(true);
+    seekFromClientX(e.clientX);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!dragging) return;
+    seekFromClientX(e.clientX);
+  };
+
+  const handlePointerUp = () => setDragging(false);
+
   const bars = 24;
   const activeBars = Math.round((progress || 0) * bars);
 
@@ -62,7 +91,17 @@ export default function VoiceMessage({ path, durationMs, mine }) {
       >
         {playing ? <Pause size={14} /> : <Play size={14} className="ml-0.5" />}
       </button>
-      <div className="flex-1 flex items-center gap-[2px] h-6">
+      <div
+        ref={waveRef}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerUp}
+        className={
+          "flex-1 flex items-center gap-[2px] h-6 touch-none " +
+          (url ? "cursor-pointer" : "")
+        }
+      >
         {Array.from({ length: bars }).map((_, i) => {
           const h = 30 + ((i * 37) % 70);
           const on = i < activeBars;
